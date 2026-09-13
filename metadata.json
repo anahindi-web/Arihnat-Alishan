@@ -1,0 +1,6 @@
+{
+  "name": "Arihant Alishan",
+  "description": "Smart Living & Society Management with Staff Attendance (Geo-location & Selfie), Guard Patrol QR Monitoring (P1-P5 & Night Guard with Automated Missed-Scan Alerts), Digital Notice Board and MCS Bylaws for Arihant Alishan, Kharghar",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
