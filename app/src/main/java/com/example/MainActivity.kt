@@ -86,6 +86,7 @@ fun ArihantApp(
                         onEmergencyClicked = { viewModel.navigateTo("emergency") },
                         onNoticesClicked = { viewModel.navigateTo("notices") },
                         onSuperAdminClicked = { viewModel.navigateTo("super_admin") },
+                        onProfileClicked = { viewModel.navigateTo("profile") },
                         backgroundWallResId = selectedBackgroundWall
                     )
                 } else if (currentScreen in listOf("master_data", "super_admin", "attendance", "patrol")) {
@@ -129,7 +130,8 @@ fun ArihantApp(
         },
         bottomBar = {
             ArihantBottomBar(
-                currentScreen = if (currentScreen in listOf("home", "complaints", "chat", "amenities", "more")) currentScreen else "more",
+                currentScreen = currentScreen,
+                currentRole = currentRole,
                 onNavigate = { route -> viewModel.navigateTo(route) }
             )
         }

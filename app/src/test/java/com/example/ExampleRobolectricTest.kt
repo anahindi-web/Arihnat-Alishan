@@ -25,12 +25,12 @@ class ExampleRobolectricTest {
   }
 
   @Test
-  fun `ArihantViewModel initializes cleanly with default Flat K-302 owner Rahul Sharma`() {
+  fun `ArihantViewModel initializes cleanly with default Flat K-2903 owner Amit K Roy`() {
     val app = ApplicationProvider.getApplicationContext<Application>()
     val vm = ArihantViewModel(app)
     assertNotNull(vm)
-    assertEquals("Rahul Sharma", vm.currentUserName.value)
-    assertEquals("K-302", vm.currentFlatId.value)
+    assertEquals("Amit K Roy", vm.currentUserName.value)
+    assertEquals("K-2903", vm.currentFlatId.value)
     assertEquals(UserRole.RESIDENT_OWNER, vm.currentRole.value)
   }
 

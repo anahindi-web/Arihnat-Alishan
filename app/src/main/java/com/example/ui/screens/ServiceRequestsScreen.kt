@@ -33,9 +33,22 @@ fun ServiceRequestsScreen(
 ) {
     val requests by viewModel.allServiceRequests.collectAsState()
     val currentRole by viewModel.currentRole.collectAsState()
+    val currentFlatId by viewModel.currentFlatId.collectAsState()
     var showCreateDialog by remember { mutableStateOf(false) }
 
-    val isManager = currentRole != UserRole.RESIDENT_OWNER && currentRole != UserRole.RESIDENT_TENANT
+    val isResident = currentRole == UserRole.RESIDENT_OWNER ||
+            currentRole == UserRole.FAMILY_MEMBER ||
+            currentRole == UserRole.RESIDENT_TENANT
+
+    val isManager = currentRole.isCommitteeMember() ||
+            currentRole.isSuperAdmin() ||
+            currentRole == UserRole.SOCIETY_MANAGER
+
+    val visibleRequests = if (isResident) {
+        requests.filter { it.flat == currentFlatId }
+    } else {
+        requests
+    }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -63,7 +76,12 @@ fun ServiceRequestsScreen(
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text("NOC & Society Service Requests", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = NavyPrimary)
-                    Text("Move-In / Move-Out clearance, Flat Renovation Permits, and Document NOCs.", fontSize = 12.sp, color = TextSecondary)
+                    Text(
+                        if (isResident) "Your unit ($currentFlatId) NOC requests, move permits, and renovation clearances."
+                        else "Move-In / Move-Out clearance, Flat Renovation Permits, and Document NOCs for all flats.",
+                        fontSize = 12.sp,
+                        color = TextSecondary
+                    )
                 }
             }
 
@@ -72,7 +90,7 @@ fun ServiceRequestsScreen(
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                if (requests.isEmpty()) {
+                if (visibleRequests.isEmpty()) {
                     item {
                         Card(
                             colors = CardDefaults.cardColors(containerColor = PureWhiteSurface),
@@ -81,12 +99,17 @@ fun ServiceRequestsScreen(
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Box(modifier = Modifier.padding(32.dp), contentAlignment = Alignment.Center) {
-                                Text("No pending service requests.", fontSize = 13.sp, color = TextMuted)
+                                Text(
+                                    if (isResident) "No service requests recorded for Flat $currentFlatId."
+                                    else "No pending service requests.",
+                                    fontSize = 13.sp,
+                                    color = TextMuted
+                                )
                             }
                         }
                     }
                 } else {
-                    items(requests) { req ->
+                    items(visibleRequests) { req ->
                         ServiceRequestCard(
                             req = req,
                             isManager = isManager,

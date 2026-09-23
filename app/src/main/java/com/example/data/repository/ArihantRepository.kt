@@ -966,18 +966,18 @@ class ArihantRepository(private val appDao: AppDao) {
         // Seed Flats
         val flats = listOf(
             FlatEntity(
-                flatId = "K-302",
+                flatId = "K-2903",
                 tower = "Kaveh",
-                floor = 3,
-                flatNumber = "302",
-                ownerName = "Rahul Sharma",
+                floor = 29,
+                flatNumber = "2903",
+                ownerName = "Amit K Roy",
                 ownerPhone = "+91 98201 12345",
-                ownerEmail = "rahul.sharma@example.com",
+                ownerEmail = "amit.roy@example.com",
                 possessionDate = "15-Dec-2022",
                 occupancyStatus = "Self Occupied",
                 flatType = "3 BHK Royal",
                 areaSqFt = 1650,
-                coOwnerName = "Priya Sharma",
+                coOwnerName = "Nitika",
                 coOwnerPhone = "+91 98201 99887",
                 occupation = "Professional",
                 jobOrEmployment = "Senior IT Architect",
@@ -988,6 +988,21 @@ class ArihantRepository(private val appDao: AppDao) {
                 emergencyVolunteer = "Yes",
                 volunteerAreas = "Technical Support, First Aid, Evacuation Support, Communication",
                 volunteerPhone = "+91 98201 12345"
+            ),
+            FlatEntity(
+                flatId = "K-302",
+                tower = "Kaveh",
+                floor = 3,
+                flatNumber = "302",
+                ownerName = "Amit K Roy",
+                ownerPhone = "+91 98201 12345",
+                ownerEmail = "amit.roy@example.com",
+                possessionDate = "15-Dec-2022",
+                occupancyStatus = "Self Occupied",
+                flatType = "3 BHK Royal",
+                areaSqFt = 1650,
+                coOwnerName = "Nitika",
+                coOwnerPhone = "+91 98201 99887"
             ),
             FlatEntity(
                 flatId = "B1-402",
@@ -1009,18 +1024,18 @@ class ArihantRepository(private val appDao: AppDao) {
         )
         flats.forEach { appDao.insertFlat(it) }
 
-        // Seed Family Members for K-302 and K-1204
+        // Seed Family Members for K-2903 and K-302
         val members = listOf(
             FamilyMemberEntity(
-                flatId = "K-302",
-                fullName = "Priya Sharma",
+                flatId = "K-2903",
+                fullName = "Nitika",
                 relationship = "Spouse",
                 memberType = "Spouse",
                 gender = "Female",
-                dob = "14-May-1988",
-                calculatedAge = 38,
+                dob = "14-May-1990",
+                calculatedAge = 36,
                 phone = "+91 98201 99887",
-                email = "priya.sharma@example.com",
+                email = "nitika.roy@example.com",
                 photoUri = "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150",
                 isChild = false,
                 isChildBelow16 = false,
@@ -1030,48 +1045,61 @@ class ArihantRepository(private val appDao: AppDao) {
                 isResident = true
             ),
             FamilyMemberEntity(
-                flatId = "K-302",
-                fullName = "Aarav Sharma",
+                flatId = "K-2903",
+                fullName = "Ayaansh Roy",
                 relationship = "Son",
                 memberType = "Son",
                 gender = "Male",
-                dob = "20-Aug-2014",
-                calculatedAge = 12,
+                dob = "15-May-2016",
+                calculatedAge = 10,
                 phone = "",
                 photoUri = "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=150",
                 isChild = true,
                 isChildBelow16 = true,
-                parentGuardianName = "Rahul Sharma",
+                parentGuardianName = "Amit K Roy",
                 parentGuardianPhone = "+91 98201 12345",
                 schoolName = "Delhi Public School, Kharghar",
                 schoolAddress = "Sector 8, Kharghar, Navi Mumbai",
-                grade = "Grade 7-B",
+                grade = "Grade 5-A",
                 schoolContact = "022-27745500",
-                notes = "Asthma inhaler kept in school backpack",
+                notes = "Primary student",
                 hasAppAccess = false,
-                inviteStatus = "Not Invited",
+                inviteStatus = "Not Allowed for Minors",
+                isResident = true
+            ),
+            FamilyMemberEntity(
+                flatId = "K-2903",
+                fullName = "Abha Roy",
+                relationship = "Mother",
+                memberType = "Mother",
+                gender = "Female",
+                dob = "10-Jan-1958",
+                calculatedAge = 68,
+                phone = "+91 98201 44556",
+                photoUri = "https://images.unsplash.com/photo-1581579438747-1dc8d17bbce4?w=150",
+                isChild = false,
+                isChildBelow16 = false,
+                hasAppAccess = true,
+                inviteStatus = "Active",
+                isEmergencyContact = true,
                 isResident = true
             ),
             FamilyMemberEntity(
                 flatId = "K-302",
-                fullName = "Ananya Sharma",
-                relationship = "Daughter",
-                memberType = "Daughter",
+                fullName = "Nitika",
+                relationship = "Spouse",
+                memberType = "Spouse",
                 gender = "Female",
-                dob = "12-Nov-2018",
-                calculatedAge = 8,
-                phone = "",
-                photoUri = "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150",
-                isChild = true,
-                isChildBelow16 = true,
-                parentGuardianName = "Rahul Sharma",
-                parentGuardianPhone = "+91 98201 12345",
-                schoolName = "Delhi Public School, Kharghar",
-                schoolAddress = "Sector 8, Kharghar, Navi Mumbai",
-                grade = "Grade 3-A",
-                schoolContact = "022-27745500",
-                hasAppAccess = false,
-                inviteStatus = "Not Invited",
+                dob = "14-May-1990",
+                calculatedAge = 36,
+                phone = "+91 98201 99887",
+                email = "nitika.roy@example.com",
+                photoUri = "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150",
+                isChild = false,
+                isChildBelow16 = false,
+                hasAppAccess = true,
+                inviteStatus = "Active",
+                isEmergencyContact = true,
                 isResident = true
             ),
             FamilyMemberEntity(
@@ -1417,18 +1445,18 @@ class ArihantRepository(private val appDao: AppDao) {
         appDao.insertInvitation(
             InvitationEntity(
                 inviteCode = "INV-9821",
-                token = "ALISHAN-SEC-INV9821-K302",
-                targetFlat = "K-302",
+                token = "ALISHAN-SEC-INV9821-K2903",
+                targetFlat = "K-2903",
                 targetTower = "Kaveh",
                 assignedRole = "Family Member",
-                recipientName = "Priya Sharma",
+                recipientName = "Nitika",
                 recipientPhone = "+91 98201 99887",
-                inviteLink = "https://arihant-alishan.society.in/invite?code=INV-9821&token=ALISHAN-SEC-INV9821-K302&flat=K-302",
+                inviteLink = "https://arihant-alishan.society.in/invite?code=INV-9821&token=ALISHAN-SEC-INV9821-K2903&flat=K-2903",
                 createdAtEpoch = System.currentTimeMillis() - (12 * 3600 * 1000L),
                 expiresAtEpoch = System.currentTimeMillis() + (36 * 3600 * 1000L),
                 isSingleUse = true,
                 isUsed = false,
-                createdBy = "Rahul Sharma",
+                createdBy = "Amit K Roy",
                 status = "ACTIVE"
             )
         )
@@ -1436,13 +1464,13 @@ class ArihantRepository(private val appDao: AppDao) {
         // Seed Profile Correction Request
         appDao.insertProfileCorrection(
             OwnerProfileCorrectionRequestEntity(
-                flatId = "K-302",
-                ownerName = "Rahul Sharma",
-                requestedBy = "Rahul Sharma",
+                flatId = "K-2903",
+                ownerName = "Amit K Roy",
+                requestedBy = "Amit K Roy",
                 requestedAt = "12 Sep 2026, 02:30 PM",
                 fieldToChange = "Co-Owner",
                 currentValue = "None Listed",
-                proposedValue = "Priya Sharma",
+                proposedValue = "Nitika",
                 reason = "Joint ownership registered in registered deed.",
                 status = "Pending"
             )
@@ -1456,13 +1484,13 @@ class ArihantRepository(private val appDao: AppDao) {
                 category = "Plumbing",
                 subcategory = "Sink Drain Blockage",
                 tower = "Kaveh",
-                floor = 3,
-                location = "Kitchen Sink, Flat K-302",
+                floor = 29,
+                location = "Kitchen Sink, Flat K-2903",
                 description = "Slow water drain and slight leakage under the kitchen counter sink pipe.",
                 priority = "Medium",
                 status = "In Progress",
-                submittedBy = "K-302",
-                raisedByMemberName = "Priya Sharma",
+                submittedBy = "K-2903",
+                raisedByMemberName = "Nitika",
                 raisedByMemberType = "Family Member",
                 visibility = "All Authorised Members of This Flat",
                 assignedTo = "Society Plumber AMC",
@@ -1956,7 +1984,7 @@ class ArihantRepository(private val appDao: AppDao) {
                 bankName = "HDFC Bank Ltd., Kharghar Sector 35 Branch",
                 bankAccountNumber = "50200088192301",
                 bankIfsc = "HDFC0004921",
-                lastAmendedBy = "Shailesh B. Kulkarni (Chairman)",
+                lastAmendedBy = "Mr. Sujit (Chairman)",
                 lastAmendedDate = "12 Sep 2026, 11:30 AM"
             )
         )
@@ -2044,7 +2072,7 @@ class ArihantRepository(private val appDao: AppDao) {
             CommitteeMasterEntity(
                 id = "CM-01",
                 roleTitle = "Chairman",
-                fullName = "Shailesh B. Kulkarni",
+                fullName = "Mr. Sujit",
                 flatId = "K-2401",
                 phone = "+91 98200 44321",
                 email = "chairman.alishan@gmail.com",
@@ -2055,7 +2083,7 @@ class ArihantRepository(private val appDao: AppDao) {
             CommitteeMasterEntity(
                 id = "CM-02",
                 roleTitle = "Hon. Secretary",
-                fullName = "Anand Deshpande",
+                fullName = "Anupam Roy",
                 flatId = "B1-1802",
                 phone = "+91 98211 98765",
                 email = "secretary.alishan@gmail.com",
@@ -2066,7 +2094,7 @@ class ArihantRepository(private val appDao: AppDao) {
             CommitteeMasterEntity(
                 id = "CM-03",
                 roleTitle = "Hon. Treasurer",
-                fullName = "Pradeep Shenoy",
+                fullName = "Gautam",
                 flatId = "Z-1404",
                 phone = "+91 98330 65432",
                 email = "treasurer.alishan@gmail.com",
@@ -2378,7 +2406,7 @@ class ArihantRepository(private val appDao: AppDao) {
         // Seed Society Community Chat Messages
         val seedChatMessages = listOf(
             SocietyChatMessageEntity(
-                senderName = "Capt. Shailesh B. Kulkarni",
+                senderName = "Mr. Sujit",
                 senderFlatId = "K-2401",
                 senderRole = "Chairman",
                 message = "Welcome to Arihant Alishan resident community chat! Please use this space for respectful discussions, neighbor coordination, and local recommendations.",
@@ -2388,7 +2416,7 @@ class ArihantRepository(private val appDao: AppDao) {
                 isAnnouncement = true
             ),
             SocietyChatMessageEntity(
-                senderName = "Anand Deshpande",
+                senderName = "Anupam Roy",
                 senderFlatId = "B1-1802",
                 senderRole = "Secretary",
                 message = "Reminder to all residents: The annual overhead water tank cleaning and chlorination is scheduled this Thursday between 10 AM and 2 PM.",
@@ -2398,8 +2426,8 @@ class ArihantRepository(private val appDao: AppDao) {
                 isAnnouncement = true
             ),
             SocietyChatMessageEntity(
-                senderName = "Rahul Sharma",
-                senderFlatId = "K-302",
+                senderName = "Amit K Roy",
+                senderFlatId = "K-2903",
                 senderRole = "Resident Owner",
                 message = "Good morning neighbors! Tower Kaveh lift #1 annual AMC checkup was completed today and is running smoothly.",
                 timestamp = "Yesterday, 04:45 PM",
@@ -2439,13 +2467,13 @@ class ArihantRepository(private val appDao: AppDao) {
         // Seed Master Units (Super Admin -> Master -> Users Hierarchy)
         val seedMasters = listOf(
             MasterUnitEntity(
-                masterId = "MST-K302",
-                masterName = "Flat K-302 Master Unit (Rahul Sharma)",
+                masterId = "MST-K2903",
+                masterName = "Flat K-2903 Master Unit (Amit K Roy)",
                 masterType = "Residential Unit",
-                headOfMaster = "Rahul Sharma",
+                headOfMaster = "Amit K Roy",
                 contactPhone = "+91 98201 12345",
-                contactEmail = "rahul.sharma@example.com",
-                assignedUnit = "K-302",
+                contactEmail = "amit.roy@example.com",
+                assignedUnit = "K-2903",
                 status = "Active",
                 maxUsersAllowed = 8,
                 notes = "Primary Residential Unit - 3 BHK Royal",
@@ -2466,9 +2494,9 @@ class ArihantRepository(private val appDao: AppDao) {
             ),
             MasterUnitEntity(
                 masterId = "MST-B101",
-                masterName = "Executive Governance Master (Capt. Kulkarni)",
+                masterName = "Executive Governance Master (Mr. Sujit)",
                 masterType = "Society Committee",
-                headOfMaster = "Capt. Shailesh B. Kulkarni",
+                headOfMaster = "Mr. Sujit",
                 contactPhone = "+91 98200 11001",
                 contactEmail = "chairman@arihant-alishan.org",
                 assignedUnit = "K-2401",
@@ -2510,39 +2538,51 @@ class ArihantRepository(private val appDao: AppDao) {
         val seedSystemUsers = listOf(
             SystemUserEntity(
                 userId = "USR-101",
-                fullName = "Rahul Sharma",
-                email = "rahul.sharma@example.com",
+                fullName = "Amit K Roy",
+                email = "amit.roy@example.com",
                 phone = "+91 98201 12345",
                 roleName = "Flat Owner",
-                linkedMasterId = "MST-K302",
-                linkedMasterName = "Flat K-302 Master Unit (Rahul Sharma)",
+                linkedMasterId = "MST-K2903",
+                linkedMasterName = "Flat K-2903 Master Unit (Amit K Roy)",
                 status = "Active",
                 permissionsSummary = "Full Household Control, Domestic Staff & Vehicle Pass, Amenities, Chat",
-                flatId = "K-302"
+                flatId = "K-2903"
             ),
             SystemUserEntity(
                 userId = "USR-102",
-                fullName = "Priya Sharma",
-                email = "priya.sharma@example.com",
+                fullName = "Nitika",
+                email = "nitika.roy@example.com",
                 phone = "+91 98201 99887",
                 roleName = "Family Member",
-                linkedMasterId = "MST-K302",
-                linkedMasterName = "Flat K-302 Master Unit (Rahul Sharma)",
+                linkedMasterId = "MST-K2903",
+                linkedMasterName = "Flat K-2903 Master Unit (Amit K Roy)",
                 status = "Active",
                 permissionsSummary = "Household Access, Raise Complaints, Visitor Passes, Amenities",
-                flatId = "K-302"
+                flatId = "K-2903"
             ),
             SystemUserEntity(
                 userId = "USR-103",
-                fullName = "Aarav Sharma",
+                fullName = "Ayaansh Roy",
                 email = "",
                 phone = "",
                 roleName = "Family Member",
-                linkedMasterId = "MST-K302",
-                linkedMasterName = "Flat K-302 Master Unit (Rahul Sharma)",
+                linkedMasterId = "MST-K2903",
+                linkedMasterName = "Flat K-2903 Master Unit (Amit K Roy)",
                 status = "Active",
                 permissionsSummary = "Clubhouse & Sports Access (Child Profile)",
-                flatId = "K-302"
+                flatId = "K-2903"
+            ),
+            SystemUserEntity(
+                userId = "USR-105",
+                fullName = "Abha Roy",
+                email = "",
+                phone = "+91 98201 44556",
+                roleName = "Family Member",
+                linkedMasterId = "MST-K2903",
+                linkedMasterName = "Flat K-2903 Master Unit (Amit K Roy)",
+                status = "Active",
+                permissionsSummary = "Household Access, Raise Complaints, Visitor Passes, Amenities",
+                flatId = "K-2903"
             ),
             SystemUserEntity(
                 userId = "USR-104",
@@ -2550,11 +2590,11 @@ class ArihantRepository(private val appDao: AppDao) {
                 email = "",
                 phone = "+91 98205 77889",
                 roleName = "Domestic Help",
-                linkedMasterId = "MST-K302",
-                linkedMasterName = "Flat K-302 Master Unit (Rahul Sharma)",
+                linkedMasterId = "MST-K2903",
+                linkedMasterName = "Flat K-2903 Master Unit (Amit K Roy)",
                 status = "Active",
                 permissionsSummary = "RFID Gate Badge Entry",
-                flatId = "K-302"
+                flatId = "K-2903"
             ),
             SystemUserEntity(
                 userId = "USR-201",
@@ -2582,12 +2622,12 @@ class ArihantRepository(private val appDao: AppDao) {
             ),
             SystemUserEntity(
                 userId = "USR-301",
-                fullName = "Capt. Shailesh B. Kulkarni",
+                fullName = "Mr. Sujit",
                 email = "chairman@arihant-alishan.org",
                 phone = "+91 98200 11001",
                 roleName = "Chairman",
                 linkedMasterId = "MST-B101",
-                linkedMasterName = "Executive Governance Master (Capt. Kulkarni)",
+                linkedMasterName = "Executive Governance Master (Mr. Sujit)",
                 status = "Active",
                 permissionsSummary = "Executive Committee Approvals, AGM Notices, Financial Audit",
                 flatId = "K-2401"

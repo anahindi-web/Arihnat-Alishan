@@ -417,7 +417,9 @@ fun ComplaintDetailModal(
     var selectedNewStatus by remember { mutableStateOf(complaint.status) }
     var assignedVendor by remember { mutableStateOf(complaint.assignedTo) }
 
-    val isManager = currentRole != UserRole.RESIDENT_OWNER && currentRole != UserRole.RESIDENT_TENANT
+    val isManager = currentRole.canAmendComplaints() ||
+            currentRole == UserRole.HOUSEKEEPING_SUPERVISOR ||
+            currentRole == UserRole.SECURITY_INCHARGE
 
     AlertDialog(
         onDismissRequest = onDismiss,

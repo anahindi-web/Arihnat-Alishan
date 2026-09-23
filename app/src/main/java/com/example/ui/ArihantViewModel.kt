@@ -7,6 +7,7 @@ import com.example.data.local.AppDatabase
 import com.example.data.model.*
 import com.example.data.repository.ArihantRepository
 import com.example.ui.theme.AppTheme
+import com.example.ui.util.ScreenAccessPolicy
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.isActive
@@ -24,10 +25,10 @@ class ArihantViewModel(application: Application) : AndroidViewModel(application)
     private val _currentRole = MutableStateFlow(UserRole.RESIDENT_OWNER)
     val currentRole: StateFlow<UserRole> = _currentRole.asStateFlow()
 
-    private val _currentFlatId = MutableStateFlow("K-302")
+    private val _currentFlatId = MutableStateFlow("K-2903")
     val currentFlatId: StateFlow<String> = _currentFlatId.asStateFlow()
 
-    private val _currentUserName = MutableStateFlow("Rahul Sharma")
+    private val _currentUserName = MutableStateFlow("Amit K Roy")
     val currentUserName: StateFlow<String> = _currentUserName.asStateFlow()
 
     // Application Theme State
@@ -205,15 +206,15 @@ class ArihantViewModel(application: Application) : AndroidViewModel(application)
                 _currentFlatId.value = "Management Office"
             }
             UserRole.CHAIRMAN -> {
-                _currentUserName.value = "Capt. Shailesh B. Kulkarni"
+                _currentUserName.value = "Mr. Sujit"
                 _currentFlatId.value = "K-2401"
             }
             UserRole.SECRETARY -> {
-                _currentUserName.value = "Anand Deshpande"
+                _currentUserName.value = "Anupam Roy"
                 _currentFlatId.value = "B1-1802"
             }
             UserRole.TREASURER -> {
-                _currentUserName.value = "Pradeep Shenoy"
+                _currentUserName.value = "Gautam"
                 _currentFlatId.value = "Z-1404"
             }
             UserRole.COMMITTEE_MEMBER -> {
@@ -221,12 +222,12 @@ class ArihantViewModel(application: Application) : AndroidViewModel(application)
                 _currentFlatId.value = "B2-901"
             }
             UserRole.RESIDENT_OWNER -> {
-                _currentUserName.value = "Rahul Sharma"
-                _currentFlatId.value = "K-302"
+                _currentUserName.value = "Amit K Roy"
+                _currentFlatId.value = "K-2903"
             }
             UserRole.FAMILY_MEMBER -> {
-                _currentUserName.value = "Priya Sharma"
-                _currentFlatId.value = "K-302"
+                _currentUserName.value = "Nitika"
+                _currentFlatId.value = "K-2903"
             }
             UserRole.RESIDENT_TENANT -> {
                 _currentUserName.value = "Suresh Mehta"
@@ -253,10 +254,20 @@ class ArihantViewModel(application: Application) : AndroidViewModel(application)
                 _currentFlatId.value = "Society Office"
             }
         }
+        // If current screen is no longer accessible under the newly switched role, return safely to home
+        if (!ScreenAccessPolicy.isScreenAccessible(_currentScreen.value, role)) {
+            _currentScreen.value = "home"
+        }
         checkMissedPatrols()
     }
 
     fun switchFlat(flatId: String, userName: String? = null) {
+        val role = _currentRole.value
+        val allowed = ScreenAccessPolicy.canSwitchHouseholdFlat(role) || flatId == "K-2903"
+        if (!allowed) {
+            _activeAlert.value = "Access Restricted: Role '${role.displayName}' cannot switch household flats."
+            return
+        }
         _currentFlatId.value = flatId
         if (userName != null) {
             _currentUserName.value = userName
@@ -264,6 +275,11 @@ class ArihantViewModel(application: Application) : AndroidViewModel(application)
     }
 
     fun navigateTo(screen: String) {
+        if (!ScreenAccessPolicy.isScreenAccessible(screen, _currentRole.value)) {
+            val title = ScreenAccessPolicy.getScreenTitle(screen)
+            _activeAlert.value = "Access Denied: '${_currentRole.value.displayName}' is not authorized to access $title."
+            return
+        }
         _currentScreen.value = screen
     }
 

@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import com.example.ui.util.ScreenAccessPolicy
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -550,15 +551,16 @@ fun ArihantHeader(
     currentRole: UserRole,
     userName: String,
     flatId: String,
-    onRoleSelected: (UserRole) -> Unit,
+    onRoleSelected: (UserRole) -> Unit = {},
     onEmergencyClicked: () -> Unit,
     onNoticesClicked: () -> Unit,
     onSuperAdminClicked: (() -> Unit)? = null,
+    onProfileClicked: (() -> Unit)? = null,
     backgroundWallResId: Int = com.example.R.drawable.img_alishan_sunset,
     modifier: Modifier = Modifier
 ) {
     val theme = LocalAppThemePalette.current
-    var showRoleMenu by remember { mutableStateOf(false) }
+    var showAccountMenu by remember { mutableStateOf(false) }
 
     Box(
         modifier = modifier
@@ -639,7 +641,7 @@ fun ArihantHeader(
 
         Spacer(modifier = Modifier.height(10.dp))
 
-        // Main Greeting and Role switcher
+        // Main Greeting and User Account Badge
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -683,7 +685,7 @@ fun ArihantHeader(
                 }
             }
 
-            // Interactive Actions & Candy Role Switcher
+            // Interactive Actions & User Badge (replaces dropdown)
             Row(verticalAlignment = Alignment.CenterVertically) {
                 if (currentRole.isSuperAdmin()) {
                     CandyIconButton(
@@ -706,79 +708,162 @@ fun ArihantHeader(
 
                 Spacer(modifier = Modifier.width(10.dp))
 
-                // Candy Role Dropdown Trigger Pill
-                Box {
-                    CandyButton(
-                        text = when (currentRole) {
-                            UserRole.SUPER_ADMIN -> "Admin 👑"
-                            UserRole.RESIDENT_OWNER -> "Owner"
-                            UserRole.FAMILY_MEMBER -> "Family"
-                            UserRole.RESIDENT_TENANT -> "Tenant"
-                            UserRole.SOCIETY_MANAGER -> "Manager"
-                            UserRole.CHAIRMAN -> "Chairman"
-                            UserRole.SECRETARY -> "Secretary"
-                            UserRole.TREASURER -> "Treasurer"
-                            UserRole.COMMITTEE_MEMBER -> "Committee"
-                            UserRole.SECURITY_INCHARGE -> "Sec Incharge"
-                            UserRole.SECURITY_GUARD -> "Guard"
-                            UserRole.HOUSEKEEPING_SUPERVISOR -> "HK Sup"
-                            UserRole.HOUSEKEEPING_STAFF -> "HK Staff"
-                        },
-                        onClick = { showRoleMenu = true },
-                        flavor = CandyFlavor.GOLD,
-                        icon = Icons.Default.ArrowDropDown,
-                        shape = RoundedCornerShape(22.dp),
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                        modifier = Modifier.testTag("role_switcher_button")
-                    )
-
-                    DropdownMenu(
-                        expanded = showRoleMenu,
-                        onDismissRequest = { showRoleMenu = false },
-                        modifier = Modifier.background(theme.secondary)
+                // User Badge Pill opening Account Menu
+                Surface(
+                    onClick = { showAccountMenu = true },
+                    shape = RoundedCornerShape(20.dp),
+                    color = Color.White.copy(alpha = 0.12f),
+                    border = BorderStroke(1.dp, theme.accent.copy(alpha = 0.45f)),
+                    modifier = Modifier.testTag("user_account_badge")
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
                     ) {
-                        UserRole.values().forEach { role ->
-                            DropdownMenuItem(
-                                leadingIcon = {
-                                    if (role == UserRole.SUPER_ADMIN) {
-                                        Icon(Icons.Default.AdminPanelSettings, contentDescription = null, tint = theme.accent, modifier = Modifier.size(20.dp))
-                                    }
-                                },
-                                text = {
-                                    Text(
-                                        text = role.displayName,
-                                        color = if (role == currentRole) theme.accent else Color.White,
-                                        fontWeight = if (role == currentRole) FontWeight.Bold else FontWeight.Normal,
-                                        fontSize = 13.5.sp
-                                    )
-                                },
-                                onClick = {
-                                    showRoleMenu = false
-                                    onRoleSelected(role)
-                                }
+                        Box(
+                            modifier = Modifier
+                                .size(22.dp)
+                                .clip(CircleShape)
+                                .background(theme.accent),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            val initials = userName.split(" ")
+                                .mapNotNull { it.firstOrNull()?.toString() }
+                                .take(2)
+                                .joinToString("")
+                                .ifEmpty { "U" }
+                            Text(
+                                text = initials,
+                                fontSize = 10.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = theme.primary
                             )
                         }
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = currentRole.displayName,
+                            color = Color.White,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
                     }
                 }
             }
         }
     }
 }
+
+    // Account Details Dialog
+    if (showAccountMenu) {
+        AlertDialog(
+            onDismissRequest = { showAccountMenu = false },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(46.dp)
+                            .clip(CircleShape)
+                            .background(theme.primary),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        val initials = userName.split(" ")
+                            .mapNotNull { it.firstOrNull()?.toString() }
+                            .take(2)
+                            .joinToString("")
+                            .ifEmpty { "U" }
+                        Text(
+                            text = initials,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = theme.accent
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column {
+                        Text(userName, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                        Text(
+                            text = if (flatId.startsWith("K-")) "Kaveh Tower • Flat ${flatId.removePrefix("K-")}"
+                            else flatId,
+                            fontSize = 12.sp,
+                            color = TextSecondary
+                        )
+                    }
+                }
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Surface(
+                        color = SurfaceVariant,
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text("Active Role", fontSize = 12.sp, fontWeight = FontWeight.Medium, color = TextPrimary)
+                            StatusBadge(status = currentRole.displayName)
+                        }
+                    }
+
+                    TextButton(
+                        onClick = {
+                            showAccountMenu = false
+                            onProfileClicked?.invoke()
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.Badge, contentDescription = null, modifier = Modifier.size(18.dp), tint = NavyPrimary)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("View Household & Profile", color = NavyPrimary, fontSize = 13.sp)
+                    }
+
+                    TextButton(
+                        onClick = {
+                            showAccountMenu = false
+                            onNoticesClicked()
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.Notifications, contentDescription = null, modifier = Modifier.size(18.dp), tint = NavyPrimary)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Society Notices & Circulars", color = NavyPrimary, fontSize = 13.sp)
+                    }
+
+                    TextButton(
+                        onClick = {
+                            showAccountMenu = false
+                            onEmergencyClicked()
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.Emergency, contentDescription = null, modifier = Modifier.size(18.dp), tint = StatusCritical)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Emergency Hotline & SOS", color = StatusCritical, fontSize = 13.sp)
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = { showAccountMenu = false },
+                    colors = ButtonDefaults.buttonColors(containerColor = theme.primary)
+                ) {
+                    Text("Close")
+                }
+            }
+        )
+    }
 }
 
 @Composable
 fun ArihantBottomBar(
     currentScreen: String,
+    currentRole: UserRole = UserRole.RESIDENT_OWNER,
     onNavigate: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val items = listOf(
-        Triple("home", "Home", Icons.Default.Home),
-        Triple("complaints", "Complaints", Icons.Default.Build),
-        Triple("chat", "Chat", Icons.Default.Forum),
-        Triple("amenities", "Amenities", Icons.Default.Pool),
-        Triple("more", "More", Icons.Default.Dashboard)
-    )
+    val items = ScreenAccessPolicy.getAccessibleBottomBarItems(currentRole)
 
     NavigationBar(
         modifier = modifier
@@ -787,7 +872,10 @@ fun ArihantBottomBar(
         containerColor = PureWhiteSurface,
         tonalElevation = 10.dp
     ) {
-        items.forEachIndexed { index, (route, label, icon) ->
+        items.forEachIndexed { index, navItem ->
+            val route = navItem.route
+            val label = navItem.label
+            val icon = navItem.icon
             val selected = currentScreen == route
             val flavor = when (index) {
                 0 -> LightCandyFlavor.PASTEL_SKY
