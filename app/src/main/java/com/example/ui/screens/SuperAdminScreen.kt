@@ -27,7 +27,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.example.data.model.*
 import com.example.ui.ArihantViewModel
-import com.example.ui.components.StatusBadge
+import com.example.ui.components.*
 import com.example.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -49,10 +49,17 @@ fun SuperAdminScreen(
     val rules by viewModel.allRules.collectAsState()
     val notices by viewModel.allNotices.collectAsState()
     val auditLogs by viewModel.allAuditLogs.collectAsState()
+    val masterUnits by viewModel.allMasterUnits.collectAsState()
+    val systemUsers by viewModel.allSystemUsers.collectAsState()
+    val selectedBackgroundWall by viewModel.selectedBackgroundWall.collectAsState()
 
-    var selectedTab by remember { mutableStateOf(0) } // 0: Themes, 1: Members, 2: Digital Notices, 3: Society Rules, 4: System Audit
+    var selectedTab by remember { mutableStateOf(0) } // 0: Masters & Users, 1: Themes, 2: Members, 3: Digital Notices, 4: Society Rules, 5: System Audit
 
     // Dialog States
+    var showAddMasterDialog by remember { mutableStateOf(false) }
+    var masterToEdit by remember { mutableStateOf<MasterUnitEntity?>(null) }
+    var showAddSystemUserDialog by remember { mutableStateOf(false) }
+    var userToReassign by remember { mutableStateOf<SystemUserEntity?>(null) }
     var showAddMemberDialog by remember { mutableStateOf(false) }
     var memberToEdit by remember { mutableStateOf<Any?>(null) } // CommitteeMasterEntity, FlatEntity, or TenantEntity
     var showAddRuleDialog by remember { mutableStateOf(false) }
@@ -147,42 +154,62 @@ fun SuperAdminScreen(
                 Tab(
                     selected = selectedTab == 0,
                     onClick = { selectedTab = 0 },
-                    text = { Text("App Themes", fontWeight = if (selectedTab == 0) FontWeight.Bold else FontWeight.Normal) },
-                    icon = { Icon(Icons.Default.Palette, contentDescription = null, modifier = Modifier.size(18.dp)) }
+                    text = { Text("Masters & Users (${masterUnits.size}/${systemUsers.size})", fontWeight = if (selectedTab == 0) FontWeight.Bold else FontWeight.Normal) },
+                    icon = { Icon(Icons.Default.AccountTree, contentDescription = null, modifier = Modifier.size(18.dp)) }
                 )
                 Tab(
                     selected = selectedTab == 1,
                     onClick = { selectedTab = 1 },
-                    text = { Text("Manage Members (${committeeMembers.size + flats.size + tenants.size})", fontWeight = if (selectedTab == 1) FontWeight.Bold else FontWeight.Normal) },
-                    icon = { Icon(Icons.Default.Group, contentDescription = null, modifier = Modifier.size(18.dp)) }
+                    text = { Text("App Themes", fontWeight = if (selectedTab == 1) FontWeight.Bold else FontWeight.Normal) },
+                    icon = { Icon(Icons.Default.Palette, contentDescription = null, modifier = Modifier.size(18.dp)) }
                 )
                 Tab(
                     selected = selectedTab == 2,
                     onClick = { selectedTab = 2 },
-                    text = { Text("Digital Notices (${notices.size})", fontWeight = if (selectedTab == 2) FontWeight.Bold else FontWeight.Normal) },
-                    icon = { Icon(Icons.Default.NotificationsActive, contentDescription = null, modifier = Modifier.size(18.dp)) }
+                    text = { Text("Manage Members (${committeeMembers.size + flats.size + tenants.size})", fontWeight = if (selectedTab == 2) FontWeight.Bold else FontWeight.Normal) },
+                    icon = { Icon(Icons.Default.Group, contentDescription = null, modifier = Modifier.size(18.dp)) }
                 )
                 Tab(
                     selected = selectedTab == 3,
                     onClick = { selectedTab = 3 },
-                    text = { Text("Society Rules (${rules.size})", fontWeight = if (selectedTab == 3) FontWeight.Bold else FontWeight.Normal) },
-                    icon = { Icon(Icons.Default.Gavel, contentDescription = null, modifier = Modifier.size(18.dp)) }
+                    text = { Text("Digital Notices (${notices.size})", fontWeight = if (selectedTab == 3) FontWeight.Bold else FontWeight.Normal) },
+                    icon = { Icon(Icons.Default.NotificationsActive, contentDescription = null, modifier = Modifier.size(18.dp)) }
                 )
                 Tab(
                     selected = selectedTab == 4,
                     onClick = { selectedTab = 4 },
-                    text = { Text("Audit & MCS Logs", fontWeight = if (selectedTab == 4) FontWeight.Bold else FontWeight.Normal) },
+                    text = { Text("Society Rules (${rules.size})", fontWeight = if (selectedTab == 4) FontWeight.Bold else FontWeight.Normal) },
+                    icon = { Icon(Icons.Default.Gavel, contentDescription = null, modifier = Modifier.size(18.dp)) }
+                )
+                Tab(
+                    selected = selectedTab == 5,
+                    onClick = { selectedTab = 5 },
+                    text = { Text("Audit & MCS Logs", fontWeight = if (selectedTab == 5) FontWeight.Bold else FontWeight.Normal) },
                     icon = { Icon(Icons.Default.Security, contentDescription = null, modifier = Modifier.size(18.dp)) }
                 )
             }
 
             // Tab Contents
             when (selectedTab) {
-                0 -> SuperAdminThemesTab(
-                    currentTheme = currentTheme,
-                    onSelectTheme = { viewModel.setAppTheme(it) }
+                0 -> SuperAdminMasterHierarchyTab(
+                    masterUnits = masterUnits,
+                    systemUsers = systemUsers,
+                    onAddMasterClick = { showAddMasterDialog = true },
+                    onEditMaster = { masterToEdit = it },
+                    onToggleMasterActive = { id, isActive -> viewModel.setMasterUnitActive(id, isActive) },
+                    onDeleteMaster = { id -> viewModel.deleteMasterUnit(id) },
+                    onAddUserClick = { showAddSystemUserDialog = true },
+                    onReassignUser = { userToReassign = it },
+                    onToggleUserStatus = { id, status -> viewModel.updateUserStatus(id, status) },
+                    onDeleteUser = { id -> viewModel.deleteSystemUser(id) }
                 )
-                1 -> SuperAdminMembersTab(
+                1 -> SuperAdminThemesTab(
+                    currentTheme = currentTheme,
+                    onSelectTheme = { viewModel.setAppTheme(it) },
+                    selectedBackgroundWall = selectedBackgroundWall,
+                    onSelectWall = { viewModel.setBackgroundWall(it) }
+                )
+                2 -> SuperAdminMembersTab(
                     committeeMembers = committeeMembers,
                     flats = flats,
                     tenants = tenants,
@@ -192,24 +219,83 @@ fun SuperAdminScreen(
                     onDeleteCommittee = { id -> viewModel.deleteCommitteeMember(id) },
                     onDeleteFlat = { id -> viewModel.deleteFlat(id) }
                 )
-                2 -> SuperAdminNoticesTab(
+                3 -> SuperAdminNoticesTab(
                     notices = notices,
                     onPublishNoticeClick = { showPublishNoticeDialog = true },
                     onEditNotice = { noticeToEdit = it },
                     onTogglePin = { viewModel.togglePinNotice(it) },
                     onDeleteNotice = { viewModel.deleteNotice(it) }
                 )
-                3 -> SuperAdminRulesTab(
+                4 -> SuperAdminRulesTab(
                     rules = rules,
                     onAddRuleClick = { showAddRuleDialog = true },
                     onEditRule = { ruleToEdit = it },
                     onDeleteRule = { id, title -> viewModel.deleteSocietyRule(id, title) }
                 )
-                4 -> SuperAdminAuditTab(
+                5 -> SuperAdminAuditTab(
                     logs = auditLogs
                 )
             }
         }
+    }
+
+    // Dialog: Add / Edit Master Unit
+    if (showAddMasterDialog) {
+        SuperAdminAddEditMasterDialog(
+            master = null,
+            onDismiss = { showAddMasterDialog = false },
+            onSave = { name, type, head, phone, email, unit, maxUsers, notes ->
+                viewModel.addMasterUnit(name, type, head, phone, email, unit, maxUsers, notes)
+                showAddMasterDialog = false
+            }
+        )
+    }
+
+    if (masterToEdit != null) {
+        SuperAdminAddEditMasterDialog(
+            master = masterToEdit,
+            onDismiss = { masterToEdit = null },
+            onSave = { name, type, head, phone, email, unit, maxUsers, notes ->
+                viewModel.updateMasterUnit(
+                    masterToEdit!!.copy(
+                        masterName = name,
+                        masterType = type,
+                        headOfMaster = head,
+                        contactPhone = phone,
+                        contactEmail = email,
+                        assignedUnit = unit,
+                        maxUsersAllowed = maxUsers,
+                        notes = notes
+                    )
+                )
+                masterToEdit = null
+            }
+        )
+    }
+
+    // Dialog: Add System User
+    if (showAddSystemUserDialog) {
+        SuperAdminAddSystemUserDialog(
+            masterUnits = masterUnits.filter { it.status.equals("Active", ignoreCase = true) },
+            onDismiss = { showAddSystemUserDialog = false },
+            onAddUser = { name, phone, email, role, masterId, flat ->
+                viewModel.addSystemUser(name, phone, email, role, masterId, flat)
+                showAddSystemUserDialog = false
+            }
+        )
+    }
+
+    // Dialog: Reassign User to New Master
+    if (userToReassign != null) {
+        SuperAdminReassignMasterDialog(
+            user = userToReassign!!,
+            masterUnits = masterUnits,
+            onDismiss = { userToReassign = null },
+            onConfirm = { newMasterId ->
+                viewModel.reassignUserMaster(userToReassign!!.userId, newMasterId)
+                userToReassign = null
+            }
+        )
     }
 
     // Dialog: Add New Member
@@ -461,7 +547,9 @@ private fun AdminStatChip(label: String, value: String, modifier: Modifier = Mod
 @Composable
 private fun SuperAdminThemesTab(
     currentTheme: AppTheme,
-    onSelectTheme: (AppTheme) -> Unit
+    onSelectTheme: (AppTheme) -> Unit,
+    selectedBackgroundWall: Int,
+    onSelectWall: (Int) -> Unit
 ) {
     val theme = LocalAppThemePalette.current
     LazyColumn(
@@ -469,6 +557,14 @@ private fun SuperAdminThemesTab(
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
+        // Architectural Background Wall Selector
+        item {
+            ArihantWallpaperGalleryCard(
+                currentWallResId = selectedBackgroundWall,
+                onSelectWall = onSelectWall
+            )
+        }
+
         item {
             Card(
                 colors = CardDefaults.cardColors(containerColor = PureWhiteSurface),

@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -23,7 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.*
 import com.example.ui.ArihantViewModel
-import com.example.ui.components.StatusBadge
+import com.example.ui.components.*
 import com.example.ui.theme.*
 
 @Composable
@@ -41,6 +42,8 @@ fun GovernanceScreen(
     val allMeetings by viewModel.allMeetings.collectAsState()
     val allAuditLogs by viewModel.allAuditLogs.collectAsState()
     val allRequests by viewModel.allServiceRequests.collectAsState()
+    val taskCompletionEvent by viewModel.taskCompletionEvent.collectAsState()
+    val isSoundNotificationEnabled by viewModel.isSoundNotificationEnabled.collectAsState()
 
     var selectedSection by remember { mutableStateOf(0) }
     // 0: Overview (Role customized), 1: Approval Center, 2: Tasks & Meetings, 3: Audit Trail
@@ -49,11 +52,12 @@ fun GovernanceScreen(
     var auditModule by remember { mutableStateOf("ALL") }
     var showDecisionModal by remember { mutableStateOf<TenantEntity?>(null) }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(OffWhiteBackground)
-    ) {
+    Box(modifier = modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(OffWhiteBackground)
+        ) {
         // Section Header
         Card(
             colors = CardDefaults.cardColors(containerColor = NavyPrimary),
@@ -356,46 +360,50 @@ fun GovernanceScreen(
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
                     item {
-                        Text("Committee Tasks Tracker", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
-                    }
-
-                    items(allTasks) { task ->
-                        Card(
-                            colors = CardDefaults.cardColors(containerColor = PureWhiteSurface),
-                            shape = RoundedCornerShape(12.dp),
-                            border = CardDefaults.outlinedCardBorder(),
-                            modifier = Modifier.fillMaxWidth()
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Column(modifier = Modifier.padding(14.dp)) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(task.title, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = NavyPrimary, modifier = Modifier.weight(1f))
-                                    StatusBadge(status = task.status)
-                                }
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(task.description, fontSize = 12.sp, color = TextSecondary)
-                                Spacer(modifier = Modifier.height(6.dp))
-                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                    Text("Assigned to: ${task.assignedRole}", fontSize = 11.sp, color = TextMuted)
-                                    Text("Due: ${task.dueDate}", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = StatusWarning)
-                                }
+                            Column {
+                                Text("Committee Tasks Tracker", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                                Text("${allTasks.count { it.status == "Completed" }}/${allTasks.size} tasks finished", fontSize = 11.sp, color = TextMuted)
+                            }
 
-                                if (task.status != "Completed") {
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    Button(
-                                        onClick = { viewModel.updateTaskStatus(task.id, "Completed") },
-                                        colors = ButtonDefaults.buttonColors(containerColor = NavyPrimary),
-                                        shape = RoundedCornerShape(6.dp),
-                                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
-                                    ) {
-                                        Text("Mark as Completed", fontSize = 11.sp)
-                                    }
+                            Surface(
+                                shape = RoundedCornerShape(10.dp),
+                                color = if (isSoundNotificationEnabled) Color(0xFFE0F2FE) else SurfaceVariant,
+                                border = BorderStroke(1.dp, if (isSoundNotificationEnabled) Color(0xFF38BDF8) else CardBorder),
+                                modifier = Modifier.clickable { viewModel.toggleSoundNotification() }
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = if (isSoundNotificationEnabled) Icons.Default.VolumeUp else Icons.Default.VolumeOff,
+                                        contentDescription = "Sound feedback toggle",
+                                        tint = if (isSoundNotificationEnabled) NavyPrimary else TextMuted,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = if (isSoundNotificationEnabled) "Sound ON" else "Sound OFF",
+                                        fontSize = 10.5.sp,
+                                        color = if (isSoundNotificationEnabled) NavyPrimary else TextMuted,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
                                 }
                             }
                         }
+                    }
+
+                    items(allTasks) { task ->
+                        TaskCardItem(
+                            task = task,
+                            currentRole = currentRole,
+                            onComplete = { viewModel.updateTaskStatus(task.id, "Completed") }
+                        )
                     }
 
                     item {
@@ -503,6 +511,16 @@ fun GovernanceScreen(
                     }
                 }
             }
+        }
+    }
+
+        taskCompletionEvent?.let { event ->
+            TaskCompletionCelebrationOverlay(
+                event = event,
+                soundEnabled = isSoundNotificationEnabled,
+                onToggleSound = { viewModel.toggleSoundNotification() },
+                onDismiss = { viewModel.clearTaskCompletionEvent() }
+            )
         }
     }
 

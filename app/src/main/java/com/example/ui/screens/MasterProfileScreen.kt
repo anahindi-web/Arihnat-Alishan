@@ -16,13 +16,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import com.example.data.model.*
 import com.example.ui.ArihantViewModel
-import com.example.ui.components.StatusBadge
+import com.example.ui.components.*
 import com.example.ui.theme.*
 
 @Composable
@@ -37,10 +39,12 @@ fun MasterProfileScreen(
     val vehicles by viewModel.myVehicles.collectAsState()
     val pets by viewModel.myPets.collectAsState()
     val domesticHelp by viewModel.myDomesticHelp.collectAsState()
+    val currentFlatId by viewModel.currentFlatId.collectAsState()
 
     var selectedTab by remember { mutableStateOf(0) }
     val tabs = listOf("Overview", "Family", "Tenants", "Vehicles", "Pets & Staff")
 
+    var editingFamilyMember by remember { mutableStateOf<FamilyMemberEntity?>(null) }
     var showAddFamilyDialog by remember { mutableStateOf(false) }
     var showAddTenantDialog by remember { mutableStateOf(false) }
     var showAddVehicleDialog by remember { mutableStateOf(false) }
@@ -52,24 +56,31 @@ fun MasterProfileScreen(
             .fillMaxSize()
             .background(OffWhiteBackground)
     ) {
-        // Tab Row
-        ScrollableTabRow(
-            selectedTabIndex = selectedTab,
-            containerColor = PureWhiteSurface,
-            contentColor = NavyPrimary,
-            edgePadding = 16.dp
+        // Candy Top Header
+        Surface(
+            color = PureWhiteSurface,
+            shadowElevation = 2.dp,
+            modifier = Modifier.fillMaxWidth()
         ) {
-            tabs.forEachIndexed { index, title ->
-                Tab(
-                    selected = selectedTab == index,
-                    onClick = { selectedTab = index },
-                    text = {
-                        Text(
-                            text = title,
-                            fontWeight = if (selectedTab == index) FontWeight.Bold else FontWeight.Normal,
-                            fontSize = 13.sp
-                        )
-                    }
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 10.dp)
+            ) {
+                CandySectionHeading(
+                    title = "My Flat Master Record",
+                    subtitle = "Flat $currentFlatId • Family & Household Details",
+                    icon = Icons.Default.HomeWork,
+                    flavor = LightCandyFlavor.PASTEL_SKY,
+                    badgeText = "Flat Owner"
+                )
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                CandyPillTabRow(
+                    tabs = tabs,
+                    selectedIndex = selectedTab,
+                    onTabSelected = { selectedTab = it }
                 )
             }
         }
@@ -309,17 +320,27 @@ fun MasterProfileScreen(
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Box(
                                             modifier = Modifier
-                                                .size(36.dp)
+                                                .size(40.dp)
                                                 .clip(CircleShape)
-                                                .background(if (member.isChild) Color(0xFFEDE9FE) else SurfaceVariant),
+                                                .background(if (member.isChild) Color(0xFFEDE9FE) else SurfaceVariant)
+                                                .border(1.dp, CardBorder, CircleShape),
                                             contentAlignment = Alignment.Center
                                         ) {
-                                            Icon(
-                                                imageVector = if (member.isChild) Icons.Default.ChildCare else Icons.Default.Person,
-                                                contentDescription = null,
-                                                tint = if (member.isChild) Color(0xFF8B5CF6) else NavyPrimary,
-                                                modifier = Modifier.size(20.dp)
-                                            )
+                                            if (member.photoUri.isNotBlank()) {
+                                                AsyncImage(
+                                                    model = member.photoUri,
+                                                    contentDescription = member.fullName,
+                                                    contentScale = ContentScale.Crop,
+                                                    modifier = Modifier.fillMaxSize().clip(CircleShape)
+                                                )
+                                            } else {
+                                                Icon(
+                                                    imageVector = if (member.isChild) Icons.Default.ChildCare else Icons.Default.Person,
+                                                    contentDescription = null,
+                                                    tint = if (member.isChild) Color(0xFF8B5CF6) else NavyPrimary,
+                                                    modifier = Modifier.size(20.dp)
+                                                )
+                                            }
                                         }
                                         Spacer(modifier = Modifier.width(10.dp))
                                         Column {
@@ -337,8 +358,24 @@ fun MasterProfileScreen(
                                         }
                                     }
 
-                                    if (member.isEmergencyContact) {
-                                        StatusBadge(status = "Emergency Contact")
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        if (member.isEmergencyContact) {
+                                            StatusBadge(status = "Emergency Contact")
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                        }
+                                        IconButton(
+                                            onClick = { editingFamilyMember = member },
+                                            modifier = Modifier
+                                                .size(32.dp)
+                                                .testTag("btn_edit_family_${member.id}")
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Edit,
+                                                contentDescription = "Edit ${member.fullName}",
+                                                tint = Color(0xFF0284C7),
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                        }
                                     }
                                 }
 
@@ -685,11 +722,22 @@ fun MasterProfileScreen(
     }
 
     // Dialogs
+    editingFamilyMember?.let { memberToEdit ->
+        EditFamilyMemberDialog(
+            member = memberToEdit,
+            onDismiss = { editingFamilyMember = null },
+            onSave = { updated ->
+                viewModel.updateFamilyMember(updated)
+                editingFamilyMember = null
+            }
+        )
+    }
+
     if (showAddFamilyDialog) {
         AddFamilyMemberDialog(
             onDismiss = { showAddFamilyDialog = false },
-            onAdd = { name, rel, gen, dob, age, phone, email, isEmerg, isChild, school, grade ->
-                viewModel.addFamilyMember(name, rel, gen, dob, age, phone, email, isEmerg, isChild, school, grade)
+            onAdd = { name, rel, gen, dob, age, phone, email, isEmerg, isChild, school, grade, photoUri ->
+                viewModel.addFamilyMember(name, rel, gen, dob, age, phone, email, isEmerg, isChild, school, grade, photoUri)
                 showAddFamilyDialog = false
             }
         )
@@ -754,7 +802,7 @@ fun MasterProfileScreen(
 @Composable
 fun AddFamilyMemberDialog(
     onDismiss: () -> Unit,
-    onAdd: (String, String, String, String, Int, String, String, Boolean, Boolean, String, String) -> Unit
+    onAdd: (String, String, String, String, Int, String, String, Boolean, Boolean, String, String, String) -> Unit
 ) {
     var name by remember { mutableStateOf("") }
     var relationship by remember { mutableStateOf("Spouse") }
@@ -767,12 +815,20 @@ fun AddFamilyMemberDialog(
     var isChild by remember { mutableStateOf(false) }
     var school by remember { mutableStateOf("") }
     var grade by remember { mutableStateOf("") }
+    var photoUri by remember { mutableStateOf("") }
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Add Family Member", fontWeight = FontWeight.Bold, color = NavyPrimary) },
         text = {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                item {
+                    MemberPhotoPicker(
+                        photoUri = photoUri,
+                        onPhotoSelected = { photoUri = it },
+                        onPhotoCleared = { photoUri = "" }
+                    )
+                }
                 item {
                     OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Full Name") }, modifier = Modifier.fillMaxWidth())
                 }
@@ -814,7 +870,7 @@ fun AddFamilyMemberDialog(
             Button(
                 onClick = {
                     if (name.isNotBlank()) {
-                        onAdd(name, relationship, gender, dob, age.toIntOrNull() ?: 30, phone, email, isEmergency, isChild, school, grade)
+                        onAdd(name, relationship, gender, dob, age.toIntOrNull() ?: 30, phone, email, isEmergency, isChild, school, grade, photoUri)
                     }
                 },
                 colors = ButtonDefaults.buttonColors(containerColor = NavyPrimary)

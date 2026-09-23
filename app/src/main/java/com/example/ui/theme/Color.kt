@@ -16,6 +16,7 @@ val OffWhiteBackground = Color(0xFFF8FAFC) // Off-white canvas
 val PureWhiteSurface = Color(0xFFFFFFFF) // Surface
 val SurfaceVariant = Color(0xFFF1F5F9) // Card highlight
 val BorderSubtle = Color(0xFFE2E8F0) // Crisp border
+val CardBorder = Color(0xFFE2E8F0) // Card border alias
 
 val TextPrimary = Color(0xFF0F172A)
 val TextSecondary = Color(0xFF475569)
@@ -28,6 +29,7 @@ val StatusWarning = Color(0xFFF59E0B) // Amber
 val StatusWarningBg = Color(0xFFFEF3C7)
 val StatusCritical = Color(0xFFEF4444) // Emergency Red
 val StatusCriticalBg = Color(0xFFFEE2E2)
+val StatusDanger = Color(0xFFEF4444) // Danger alias
 val StatusInfo = Color(0xFF3B82F6) // Electric Blue
 val StatusInfoBg = Color(0xFFDBEAFE)
 

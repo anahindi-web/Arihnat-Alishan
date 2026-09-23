@@ -318,4 +318,105 @@ interface AppDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertPatrolScanLog(log: PatrolScanLogEntity)
+
+    // Invitations
+    @Query("SELECT * FROM invitations ORDER BY createdAtEpoch DESC")
+    fun getAllInvitations(): Flow<List<InvitationEntity>>
+
+    @Query("SELECT * FROM invitations WHERE targetFlat = :flatId ORDER BY createdAtEpoch DESC")
+    fun getInvitationsForFlat(flatId: String): Flow<List<InvitationEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertInvitation(invitation: InvitationEntity)
+
+    @Update
+    suspend fun updateInvitation(invitation: InvitationEntity)
+
+    @Query("DELETE FROM invitations WHERE inviteCode = :inviteCode")
+    suspend fun deleteInvitation(inviteCode: String)
+
+    // Profile Correction Requests (Controlled workflow for Flat Owner personal data)
+    @Query("SELECT * FROM owner_profile_corrections ORDER BY id DESC")
+    fun getAllProfileCorrections(): Flow<List<OwnerProfileCorrectionRequestEntity>>
+
+    @Query("SELECT * FROM owner_profile_corrections WHERE flatId = :flatId ORDER BY id DESC")
+    fun getProfileCorrectionsForFlat(flatId: String): Flow<List<OwnerProfileCorrectionRequestEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertProfileCorrection(correction: OwnerProfileCorrectionRequestEntity)
+
+    @Update
+    suspend fun updateProfileCorrection(correction: OwnerProfileCorrectionRequestEntity)
+
+    // Rent Agreement Notifications
+    @Query("SELECT * FROM rent_agreement_notifications ORDER BY createdAtEpoch DESC")
+    fun getAllRentAgreementNotifications(): Flow<List<RentAgreementNotificationEntity>>
+
+    @Query("SELECT * FROM rent_agreement_notifications WHERE flatId = :flatId ORDER BY createdAtEpoch DESC")
+    fun getRentAgreementNotificationsForFlat(flatId: String): Flow<List<RentAgreementNotificationEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertRentAgreementNotification(notification: RentAgreementNotificationEntity)
+
+    @Query("UPDATE rent_agreement_notifications SET isRead = 1 WHERE id = :id")
+    suspend fun markRentNotificationRead(id: Long)
+
+    // Emergency Volunteers
+    @Query("SELECT * FROM flats WHERE emergencyVolunteer != 'No'")
+    fun getEmergencyVolunteers(): Flow<List<FlatEntity>>
+
+    // Society Community Chat
+    @Query("SELECT * FROM society_chat_messages ORDER BY epochMillis ASC")
+    fun getAllChatMessages(): Flow<List<SocietyChatMessageEntity>>
+
+    @Query("SELECT * FROM society_chat_messages WHERE channel = :channel ORDER BY epochMillis ASC")
+    fun getChatMessagesByChannel(channel: String): Flow<List<SocietyChatMessageEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertChatMessage(message: SocietyChatMessageEntity)
+
+    @Query("DELETE FROM society_chat_messages WHERE id = :id")
+    suspend fun deleteChatMessage(id: Long)
+
+    // Master Units (Super Admin & Master-User Relationship)
+    @Query("SELECT * FROM master_units ORDER BY masterId ASC")
+    fun getAllMasterUnits(): Flow<List<MasterUnitEntity>>
+
+    @Query("SELECT * FROM master_units WHERE masterId = :masterId LIMIT 1")
+    fun getMasterUnitById(masterId: String): Flow<MasterUnitEntity?>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertMasterUnit(master: MasterUnitEntity)
+
+    @Update
+    suspend fun updateMasterUnit(master: MasterUnitEntity)
+
+    @Query("DELETE FROM master_units WHERE masterId = :masterId")
+    suspend fun deleteMasterUnit(masterId: String)
+
+    // System Users
+    @Query("SELECT * FROM system_users ORDER BY userId ASC")
+    fun getAllSystemUsers(): Flow<List<SystemUserEntity>>
+
+    @Query("SELECT * FROM system_users WHERE linkedMasterId = :masterId ORDER BY userId ASC")
+    fun getUsersByMasterId(masterId: String): Flow<List<SystemUserEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertSystemUser(user: SystemUserEntity)
+
+    @Update
+    suspend fun updateSystemUser(user: SystemUserEntity)
+
+    @Query("DELETE FROM system_users WHERE userId = :userId")
+    suspend fun deleteSystemUser(userId: String)
+
+    @Query("UPDATE system_users SET linkedMasterId = :newMasterId, linkedMasterName = :newMasterName WHERE userId = :userId")
+    suspend fun reassignUserMaster(userId: String, newMasterId: String, newMasterName: String)
+
+    @Query("UPDATE system_users SET status = :status WHERE userId = :userId")
+    suspend fun updateUserStatus(userId: String, status: String)
+
+    @Query("UPDATE system_users SET roleName = :newRole, permissionsSummary = :permissions WHERE userId = :userId")
+    suspend fun updateUserRoleAndPermissions(userId: String, newRole: String, permissions: String)
 }
+

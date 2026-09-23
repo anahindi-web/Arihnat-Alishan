@@ -19,6 +19,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ui.ArihantViewModel
+import com.example.ui.components.CandyButton
+import com.example.ui.components.CandyFlavor
 import com.example.ui.components.StatusBadge
 import com.example.ui.theme.*
 
@@ -66,14 +68,13 @@ fun WaterLiftMonitoringScreen(
                                     fontSize = 12.sp
                                 )
                             }
-                            Button(
+                            CandyButton(
+                                text = "Report Issue",
                                 onClick = { showReportDialog = true },
-                                colors = ButtonDefaults.buttonColors(containerColor = GoldAccent, contentColor = NavyPrimary),
-                                shape = RoundedCornerShape(8.dp),
-                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
-                            ) {
-                                Text("Report Issue", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                            }
+                                flavor = CandyFlavor.GOLD,
+                                shape = RoundedCornerShape(16.dp),
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                            )
                         }
                     }
                 }

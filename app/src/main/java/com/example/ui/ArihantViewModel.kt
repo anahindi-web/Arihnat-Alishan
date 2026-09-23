@@ -24,15 +24,23 @@ class ArihantViewModel(application: Application) : AndroidViewModel(application)
     private val _currentRole = MutableStateFlow(UserRole.RESIDENT_OWNER)
     val currentRole: StateFlow<UserRole> = _currentRole.asStateFlow()
 
-    private val _currentFlatId = MutableStateFlow("K-1204")
+    private val _currentFlatId = MutableStateFlow("K-302")
     val currentFlatId: StateFlow<String> = _currentFlatId.asStateFlow()
 
-    private val _currentUserName = MutableStateFlow("Rajesh Sharma")
+    private val _currentUserName = MutableStateFlow("Rahul Sharma")
     val currentUserName: StateFlow<String> = _currentUserName.asStateFlow()
 
     // Application Theme State
-    private val _currentAppTheme = MutableStateFlow(AppTheme.ROYAL_GOLD)
+    private val _currentAppTheme = MutableStateFlow(AppTheme.ARIHANT_CLASSIC)
     val currentAppTheme: StateFlow<AppTheme> = _currentAppTheme.asStateFlow()
+
+    // Background Wall State
+    private val _selectedBackgroundWall = MutableStateFlow(com.example.R.drawable.img_alishan_sunset)
+    val selectedBackgroundWall: StateFlow<Int> = _selectedBackgroundWall.asStateFlow()
+
+    fun setBackgroundWall(drawableResId: Int) {
+        _selectedBackgroundWall.value = drawableResId
+    }
 
     // Missed Patrol Alert Popup State for Committee Members and Society Managers
     private val _activeMissedAlertPopup = MutableStateFlow<PatrolCheckpointEntity?>(null)
@@ -60,25 +68,35 @@ class ArihantViewModel(application: Application) : AndroidViewModel(application)
     private val _activeAlert = MutableStateFlow<String?>(null)
     val activeAlert: StateFlow<String?> = _activeAlert.asStateFlow()
 
-    // Data streams from repository
+    // Data streams from repository (dynamically reactive to currentFlatId)
     val allFlats = repository.allFlats.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-    val myFlat = repository.getFlat("K-1204").stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
-    val myFamilyMembers = repository.getFamilyMembers("K-1204").stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-    val myTenants = repository.getTenantsForFlat("K-1204").stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    val myFlat = _currentFlatId.flatMapLatest { repository.getFlat(it) }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    val myFamilyMembers = _currentFlatId.flatMapLatest { repository.getFamilyMembers(it) }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    val myTenants = _currentFlatId.flatMapLatest { repository.getTenantsForFlat(it) }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val allTenants = repository.allTenants.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-    val myVehicles = repository.getVehiclesForFlat("K-1204").stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    val myVehicles = _currentFlatId.flatMapLatest { repository.getVehiclesForFlat(it) }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val allVehicles = repository.allVehicles.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-    val myPets = repository.getPetsForFlat("K-1204").stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-    val myDomesticHelp = repository.getDomesticHelpForFlat("K-1204").stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    val myPets = _currentFlatId.flatMapLatest { repository.getPetsForFlat(it) }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    val myDomesticHelp = _currentFlatId.flatMapLatest { repository.getDomesticHelpForFlat(it) }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val allComplaints = repository.allComplaints.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-    val myComplaints = repository.getComplaintsForFlat("K-1204").stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    val myComplaints = _currentFlatId.flatMapLatest { repository.getComplaintsForFlat(it) }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val allVisitors = repository.allVisitors.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-    val myVisitors = repository.getVisitorsForFlat("K-1204").stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    val myVisitors = _currentFlatId.flatMapLatest { repository.getVisitorsForFlat(it) }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val allAmenities = repository.allAmenities.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val allAmenityBookings = repository.allAmenityBookings.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-    val myAmenityBookings = repository.getBookingsForFlat("K-1204").stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    val myAmenityBookings = _currentFlatId.flatMapLatest { repository.getBookingsForFlat(it) }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val allMaintenanceBills = repository.allMaintenanceBills.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-    val myMaintenanceBills = repository.getBillsForFlat("K-1204").stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    val myMaintenanceBills = _currentFlatId.flatMapLatest { repository.getBillsForFlat(it) }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val allNotices = repository.allNotices.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val allParkingSlots = repository.allParkingSlots.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val allCommitteeTasks = repository.allCommitteeTasks.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -94,6 +112,67 @@ class ArihantViewModel(application: Application) : AndroidViewModel(application)
     val allStaffAttendance = repository.allStaffAttendance.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val allPatrolCheckpoints = repository.allPatrolCheckpoints.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val allPatrolScanLogs = repository.allPatrolScanLogs.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val allInvitations = repository.allInvitations.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val allProfileCorrections = repository.allProfileCorrections.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val allRentAgreementNotifications = repository.allRentAgreementNotifications.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val emergencyVolunteers = repository.emergencyVolunteers.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val allMasterUnits = repository.allMasterUnits.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val allSystemUsers = repository.allSystemUsers.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    // Task Completion Event & Notification Sound Settings
+    data class TaskCompletionEvent(
+        val taskId: String,
+        val taskTitle: String,
+        val category: String,
+        val timestamp: Long = System.currentTimeMillis()
+    )
+
+    private val _taskCompletionEvent = MutableStateFlow<TaskCompletionEvent?>(null)
+    val taskCompletionEvent: StateFlow<TaskCompletionEvent?> = _taskCompletionEvent.asStateFlow()
+
+    fun dismissTaskCompletionEvent() {
+        _taskCompletionEvent.value = null
+    }
+
+    fun clearTaskCompletionEvent() {
+        _taskCompletionEvent.value = null
+    }
+
+    private val _isSoundNotificationEnabled = MutableStateFlow(true)
+    val isSoundNotificationEnabled: StateFlow<Boolean> = _isSoundNotificationEnabled.asStateFlow()
+
+    fun toggleSoundNotification(enabled: Boolean? = null) {
+        _isSoundNotificationEnabled.value = enabled ?: !_isSoundNotificationEnabled.value
+        _activeAlert.value = if (_isSoundNotificationEnabled.value) "Notification sounds turned ON" else "Notification sounds turned OFF"
+    }
+
+    val allChatMessages = repository.allChatMessages.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    private val _selectedChatChannel = MutableStateFlow("General Society")
+    val selectedChatChannel: StateFlow<String> = _selectedChatChannel.asStateFlow()
+
+    fun selectChatChannel(channel: String) {
+        _selectedChatChannel.value = channel
+    }
+
+    fun sendChatMessage(messageText: String, channel: String = _selectedChatChannel.value) {
+        if (messageText.isBlank()) return
+        viewModelScope.launch {
+            val now = System.currentTimeMillis()
+            val timeFormat = SimpleDateFormat("hh:mm a", Locale.getDefault()).format(Date(now))
+            val newMsg = SocietyChatMessageEntity(
+                senderName = _currentUserName.value,
+                senderFlatId = _currentFlatId.value,
+                senderRole = _currentRole.value.displayName,
+                message = messageText.trim(),
+                timestamp = "Today, $timeFormat",
+                epochMillis = now,
+                channel = channel,
+                isAnnouncement = _currentRole.value.isCommitteeMember() && channel == "General Society"
+            )
+            repository.sendChatMessage(newMsg)
+        }
+    }
 
     init {
         viewModelScope.launch {
@@ -123,22 +202,10 @@ class ArihantViewModel(application: Application) : AndroidViewModel(application)
         when (role) {
             UserRole.SUPER_ADMIN -> {
                 _currentUserName.value = "Super Administrator"
-                _currentFlatId.value = "System Root (Admin)"
-            }
-            UserRole.RESIDENT_OWNER -> {
-                _currentUserName.value = "Rajesh Sharma"
-                _currentFlatId.value = "K-1204"
-            }
-            UserRole.RESIDENT_TENANT -> {
-                _currentUserName.value = "Rohan Mehta"
-                _currentFlatId.value = "K-1204"
-            }
-            UserRole.SOCIETY_MANAGER -> {
-                _currentUserName.value = "Sanjay Patil"
-                _currentFlatId.value = "Society Office"
+                _currentFlatId.value = "Management Office"
             }
             UserRole.CHAIRMAN -> {
-                _currentUserName.value = "Shailesh B. Kulkarni"
+                _currentUserName.value = "Capt. Shailesh B. Kulkarni"
                 _currentFlatId.value = "K-2401"
             }
             UserRole.SECRETARY -> {
@@ -150,19 +217,50 @@ class ArihantViewModel(application: Application) : AndroidViewModel(application)
                 _currentFlatId.value = "Z-1404"
             }
             UserRole.COMMITTEE_MEMBER -> {
-                _currentUserName.value = "Sunil Patil (Parking Head)"
+                _currentUserName.value = "Sunil Patil (Committee Member)"
                 _currentFlatId.value = "B2-901"
+            }
+            UserRole.RESIDENT_OWNER -> {
+                _currentUserName.value = "Rahul Sharma"
+                _currentFlatId.value = "K-302"
+            }
+            UserRole.FAMILY_MEMBER -> {
+                _currentUserName.value = "Priya Sharma"
+                _currentFlatId.value = "K-302"
+            }
+            UserRole.RESIDENT_TENANT -> {
+                _currentUserName.value = "Suresh Mehta"
+                _currentFlatId.value = "B1-402"
+            }
+            UserRole.SECURITY_INCHARGE -> {
+                _currentUserName.value = "Inspector R. D. Shinde"
+                _currentFlatId.value = "Main Security Control"
             }
             UserRole.SECURITY_GUARD -> {
                 _currentUserName.value = "Head Guard Ram Singh"
                 _currentFlatId.value = "Main Gate 1"
             }
-            UserRole.MAINTENANCE_STAFF -> {
-                _currentUserName.value = "Prakash Nair (Supervisor)"
-                _currentFlatId.value = "Engineering Unit"
+            UserRole.HOUSEKEEPING_SUPERVISOR -> {
+                _currentUserName.value = "Sunita Jadhav (HK Supervisor)"
+                _currentFlatId.value = "Facility Management"
+            }
+            UserRole.HOUSEKEEPING_STAFF -> {
+                _currentUserName.value = "Ramesh Pawar (HK Staff)"
+                _currentFlatId.value = "Housekeeping Bay"
+            }
+            UserRole.SOCIETY_MANAGER -> {
+                _currentUserName.value = "Sanjay Patil"
+                _currentFlatId.value = "Society Office"
             }
         }
         checkMissedPatrols()
+    }
+
+    fun switchFlat(flatId: String, userName: String? = null) {
+        _currentFlatId.value = flatId
+        if (userName != null) {
+            _currentUserName.value = userName
+        }
     }
 
     fun navigateTo(screen: String) {
@@ -248,7 +346,8 @@ class ArihantViewModel(application: Application) : AndroidViewModel(application)
         isEmergency: Boolean,
         isChild: Boolean,
         school: String,
-        grade: String
+        grade: String,
+        photoUri: String = ""
     ) {
         viewModelScope.launch {
             val member = FamilyMemberEntity(
@@ -264,7 +363,8 @@ class ArihantViewModel(application: Application) : AndroidViewModel(application)
                 isResident = true,
                 isChild = isChild,
                 schoolName = school,
-                grade = grade
+                grade = grade,
+                photoUri = photoUri
             )
             repository.addFamilyMember(member, _currentUserName.value, _currentRole.value.displayName)
             _activeAlert.value = "Family member $name added."
@@ -354,13 +454,16 @@ class ArihantViewModel(application: Application) : AndroidViewModel(application)
         location: String,
         description: String,
         priority: String,
-        photoPlaceholder: String = ""
+        photoPlaceholder: String = "",
+        visibility: String = "All Authorised Members of This Flat"
     ) {
         viewModelScope.launch {
             val sdf = SimpleDateFormat("dd MMM yyyy, hh:mm a", Locale.getDefault())
-            val cid = "AA-${(1030..9999).random()}"
+            val randNum = (1000..9999).random()
+            val cid = "CMP-2026-$randNum"
             val complaint = ComplaintEntity(
                 id = cid,
+                ticketIdFormatted = cid,
                 category = category,
                 subcategory = subcategory,
                 tower = tower,
@@ -371,11 +474,104 @@ class ArihantViewModel(application: Application) : AndroidViewModel(application)
                 priority = priority,
                 status = "Submitted",
                 submittedBy = _currentFlatId.value,
+                raisedByMemberName = _currentUserName.value,
+                raisedByMemberType = _currentRole.value.displayName,
+                visibility = visibility,
                 createdAt = sdf.format(Date()),
                 slaHours = if (priority == "Critical") 2 else if (priority == "High") 6 else 24
             )
             repository.createComplaint(complaint, _currentUserName.value, _currentRole.value.displayName)
-            _activeAlert.value = "Complaint $cid submitted successfully!"
+            _activeAlert.value = "Ticket $cid submitted successfully!"
+        }
+    }
+
+    // Invitations
+    fun createInvitation(
+        targetFlat: String,
+        targetTower: String,
+        assignedRole: String,
+        recipientName: String,
+        recipientPhone: String,
+        validityHours: Int = 48
+    ) {
+        viewModelScope.launch {
+            val invite = repository.createInvitation(
+                targetFlat = targetFlat,
+                targetTower = targetTower,
+                assignedRole = assignedRole,
+                recipientName = recipientName,
+                recipientPhone = recipientPhone,
+                createdBy = _currentUserName.value,
+                validityHours = validityHours
+            )
+            _activeAlert.value = "Secure invitation ${invite.inviteCode} generated for $recipientName."
+        }
+    }
+
+    fun revokeInvitation(inviteCode: String) {
+        viewModelScope.launch {
+            repository.revokeInvitation(inviteCode, _currentUserName.value, _currentRole.value.displayName)
+            _activeAlert.value = "Invitation $inviteCode revoked."
+        }
+    }
+
+    // Profile Correction Requests (Controlled workflow for flat owners)
+    fun submitProfileCorrection(
+        fieldToChange: String,
+        currentValue: String,
+        proposedValue: String,
+        reason: String
+    ) {
+        viewModelScope.launch {
+            repository.submitProfileCorrectionRequest(
+                flatId = _currentFlatId.value,
+                ownerName = _currentUserName.value,
+                requestedBy = _currentUserName.value,
+                fieldToChange = fieldToChange,
+                currentVal = currentValue,
+                proposedVal = proposedValue,
+                reason = reason
+            )
+            _activeAlert.value = "Correction request for $fieldToChange submitted to Super Admin."
+        }
+    }
+
+    fun reviewProfileCorrection(id: Long, isApproved: Boolean, reviewNotes: String) {
+        viewModelScope.launch {
+            repository.reviewProfileCorrectionRequest(id, isApproved, _currentUserName.value, reviewNotes)
+            _activeAlert.value = "Profile correction request #${id} ${if (isApproved) "Approved" else "Rejected"}."
+        }
+    }
+
+    fun markRentNotificationRead(id: Long) {
+        viewModelScope.launch {
+            repository.markRentNotificationRead(id)
+        }
+    }
+
+    fun updateOwnerProfessionalAndVolunteer(
+        occupation: String,
+        industry: String,
+        company: String,
+        skills: String,
+        howHelp: String,
+        volunteer: String,
+        volunteerAreas: String
+    ) {
+        viewModelScope.launch {
+            repository.updateFlatProfessionalAndVolunteer(
+                flatId = _currentFlatId.value,
+                occupation = occupation,
+                industry = industry,
+                company = company,
+                skills = skills,
+                howHelp = howHelp,
+                volunteer = volunteer,
+                volunteerAreas = volunteerAreas,
+                currentUser = _currentUserName.value,
+                userRole = _currentRole.value.displayName
+            )
+            _activeAlert.value = "Professional details & volunteer preferences saved."
         }
     }
 
@@ -415,7 +611,7 @@ class ArihantViewModel(application: Application) : AndroidViewModel(application)
                 visitorName = name,
                 phone = phone,
                 flat = _currentFlatId.value,
-                tower = "Kaveh",
+                tower = myFlat.value?.tower ?: "Kaveh",
                 type = type,
                 company = company,
                 expectedArrival = expectedTime,
@@ -495,10 +691,163 @@ class ArihantViewModel(application: Application) : AndroidViewModel(application)
 
     fun updateTaskStatus(taskId: String, status: String) {
         viewModelScope.launch {
+            val taskList = allCommitteeTasks.value
+            val task = taskList.find { it.id == taskId }
+            val taskTitle = task?.title ?: taskId
+            val category = task?.category ?: "General"
+
             repository.updateCommitteeTaskStatus(taskId, status, _currentUserName.value, _currentRole.value.displayName)
-            _activeAlert.value = "Task $taskId updated to $status."
+
+            if (status.equals("Completed", ignoreCase = true)) {
+                if (_isSoundNotificationEnabled.value) {
+                    com.example.ui.util.SoundNotificationHelper.playTaskCompletionSound(getApplication(), true)
+                }
+                _taskCompletionEvent.value = TaskCompletionEvent(
+                    taskId = taskId,
+                    taskTitle = taskTitle,
+                    category = category
+                )
+                _activeAlert.value = "✓ Task '$taskTitle' completed successfully!"
+            } else {
+                _activeAlert.value = "Task $taskId updated to $status."
+            }
         }
     }
+
+    // Super Admin Master & User Management
+    fun addMasterUnit(master: MasterUnitEntity) {
+        viewModelScope.launch {
+            repository.addMasterUnit(master, _currentUserName.value, _currentRole.value.displayName)
+            _activeAlert.value = "Master '${master.masterName}' created successfully."
+        }
+    }
+
+    fun addMasterUnit(
+        name: String,
+        type: String,
+        headOfMaster: String,
+        phone: String,
+        email: String,
+        assignedUnit: String,
+        maxUsers: Int = 10,
+        notes: String = ""
+    ) {
+        val rand = (100..999).random()
+        val masterId = "MST-${assignedUnit.replace(" ", "").replace("-", "").ifEmpty { "UNIT" }}-$rand"
+        val master = MasterUnitEntity(
+            masterId = masterId,
+            masterName = name,
+            masterType = type,
+            headOfMaster = headOfMaster,
+            contactPhone = phone,
+            contactEmail = email,
+            assignedUnit = assignedUnit,
+            status = "Active",
+            maxUsersAllowed = maxUsers,
+            notes = notes,
+            createdDate = SimpleDateFormat("dd-MMM-yyyy", Locale.getDefault()).format(Date())
+        )
+        addMasterUnit(master)
+    }
+
+    fun updateMasterUnit(master: MasterUnitEntity) {
+        viewModelScope.launch {
+            repository.updateMasterUnit(master, _currentUserName.value, _currentRole.value.displayName)
+            _activeAlert.value = "Master '${master.masterName}' updated."
+        }
+    }
+
+    fun setMasterStatus(masterId: String, status: String) {
+        viewModelScope.launch {
+            repository.setMasterStatus(masterId, status, _currentUserName.value, _currentRole.value.displayName)
+            _activeAlert.value = "Master $masterId status updated to $status."
+        }
+    }
+
+    fun setMasterUnitActive(masterId: String, isActive: Boolean) {
+        setMasterStatus(masterId, if (isActive) "Active" else "Deactivated")
+    }
+
+    fun deleteMasterUnit(masterId: String) {
+        viewModelScope.launch {
+            repository.deleteMasterUnit(masterId, _currentUserName.value, _currentRole.value.displayName)
+            _activeAlert.value = "Master $masterId removed."
+        }
+    }
+
+    fun addSystemUser(user: SystemUserEntity) {
+        viewModelScope.launch {
+            repository.addSystemUser(user, _currentUserName.value, _currentRole.value.displayName)
+            _activeAlert.value = "User '${user.fullName}' added and linked to ${user.linkedMasterName}."
+        }
+    }
+
+    fun addSystemUser(
+        name: String,
+        phone: String,
+        email: String,
+        role: String,
+        masterId: String,
+        flatNumber: String,
+        permissions: String = "Standard Household Access"
+    ) {
+        val rand = (1000..9999).random()
+        val userId = "USR-$rand"
+        val master = allMasterUnits.value.find { it.masterId == masterId }
+        val masterName = master?.masterName ?: "Master Unit $masterId"
+        val user = SystemUserEntity(
+            userId = userId,
+            fullName = name,
+            email = email,
+            phone = phone,
+            roleName = role,
+            linkedMasterId = masterId,
+            linkedMasterName = masterName,
+            status = "Active",
+            permissionsSummary = permissions,
+            flatId = flatNumber
+        )
+        addSystemUser(user)
+    }
+
+    fun reassignUserMaster(userId: String, newMasterId: String, newMasterName: String) {
+        viewModelScope.launch {
+            repository.reassignUserMaster(userId, newMasterId, newMasterName, _currentUserName.value, _currentRole.value.displayName)
+            _activeAlert.value = "User $userId reassigned to Master $newMasterName."
+        }
+    }
+
+    fun reassignUserMaster(userId: String, newMasterId: String) {
+        val master = allMasterUnits.value.find { it.masterId == newMasterId }
+        val newMasterName = master?.masterName ?: "Master Unit $newMasterId"
+        reassignUserMaster(userId, newMasterId, newMasterName)
+    }
+
+    fun updateUserRoleAndPermissions(userId: String, newRole: String, permissions: String) {
+        viewModelScope.launch {
+            repository.updateUserRoleAndPermissions(userId, newRole, permissions, _currentUserName.value, _currentRole.value.displayName)
+            _activeAlert.value = "Updated role & permissions for user $userId."
+        }
+    }
+
+    fun setUserStatus(userId: String, status: String) {
+        viewModelScope.launch {
+            repository.setUserStatus(userId, status, _currentUserName.value, _currentRole.value.displayName)
+            _activeAlert.value = "User $userId status set to $status."
+        }
+    }
+
+    fun updateUserStatus(userId: String, status: String) {
+        setUserStatus(userId, status)
+    }
+
+    fun deleteSystemUser(userId: String) {
+        viewModelScope.launch {
+            repository.deleteSystemUser(userId, _currentUserName.value, _currentRole.value.displayName)
+            _activeAlert.value = "User $userId removed."
+        }
+    }
+
 
     fun publishNotice(title: String, content: String, category: String, tower: String, priority: String, circularNo: String = "", isPinned: Boolean = false) {
         viewModelScope.launch {
@@ -711,6 +1060,13 @@ class ArihantViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch {
             repository.addFamilyMember(member, _currentUserName.value, _currentRole.value.displayName)
             _activeAlert.value = "Family member ${member.fullName} added to Flat ${member.flatId}."
+        }
+    }
+
+    fun updateFamilyMember(member: FamilyMemberEntity) {
+        viewModelScope.launch {
+            repository.updateFamilyMember(member, _currentUserName.value, _currentRole.value.displayName)
+            _activeAlert.value = "Family member ${member.fullName} updated."
         }
     }
 

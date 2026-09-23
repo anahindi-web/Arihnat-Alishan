@@ -24,7 +24,7 @@ import androidx.compose.ui.unit.sp
 import com.example.data.model.ComplaintEntity
 import com.example.data.model.UserRole
 import com.example.ui.ArihantViewModel
-import com.example.ui.components.StatusBadge
+import com.example.ui.components.*
 import com.example.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -37,35 +37,56 @@ fun ComplaintsScreen(
     val currentRole by viewModel.currentRole.collectAsState()
     val currentFlatId by viewModel.currentFlatId.collectAsState()
 
+    val isFlatOwnerOnly = !currentRole.canViewAllSocietyComplaints()
+
     var selectedCategoryFilter by remember { mutableStateOf("ALL") }
-    var selectedTab by remember { mutableStateOf(0) } // 0: My Complaints, 1: Society-Wide, 2: Resolved
+    var selectedTab by remember { mutableStateOf(0) }
     var showReportDialog by remember { mutableStateOf(false) }
     var selectedComplaintDetail by remember { mutableStateOf<ComplaintEntity?>(null) }
+
+    val tabs = if (isFlatOwnerOnly) {
+        listOf("Active Complaints", "Resolved Archive")
+    } else {
+        listOf("My Complaints", "All Society Issues", "Resolved Archive")
+    }
 
     val categories = listOf("ALL", "Water", "Lift", "Garbage & Waste", "Cleanliness", "Parking", "Security", "Electricity", "Plumbing")
 
     val filteredList = allComplaints.filter { complaint ->
-        val matchesTab = when (selectedTab) {
-            0 -> complaint.submittedBy == currentFlatId || currentRole != UserRole.RESIDENT_OWNER && currentRole != UserRole.RESIDENT_TENANT
-            1 -> true
-            2 -> complaint.status == "Resolved" || complaint.status == "Closed"
-            else -> true
+        if (isFlatOwnerOnly) {
+            // Flat owner can ONLY view his own flat complaints. Cannot view any other flat or society issues.
+            val isMyComplaint = complaint.submittedBy == currentFlatId
+            val matchesTab = if (selectedTab == 0) {
+                complaint.status != "Resolved" && complaint.status != "Closed"
+            } else {
+                complaint.status == "Resolved" || complaint.status == "Closed"
+            }
+            val matchesCategory = selectedCategoryFilter == "ALL" || complaint.category == selectedCategoryFilter
+            isMyComplaint && matchesTab && matchesCategory
+        } else {
+            val matchesTab = when (selectedTab) {
+                0 -> complaint.submittedBy == currentFlatId
+                1 -> true
+                2 -> complaint.status == "Resolved" || complaint.status == "Closed"
+                else -> true
+            }
+            val matchesCategory = selectedCategoryFilter == "ALL" || complaint.category == selectedCategoryFilter
+            matchesTab && matchesCategory
         }
-        val matchesCategory = selectedCategoryFilter == "ALL" || complaint.category == selectedCategoryFilter
-        matchesTab && matchesCategory
     }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
         floatingActionButton = {
-            FloatingActionButton(
+            CandyButton(
+                text = "+ Report Issue",
                 onClick = { showReportDialog = true },
-                containerColor = NavyPrimary,
-                contentColor = GoldAccent,
+                flavor = CandyFlavor.RUBY,
+                icon = Icons.Default.Add,
+                shape = RoundedCornerShape(24.dp),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
                 modifier = Modifier.testTag("fab_report_issue")
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Report Issue")
-            }
+            )
         }
     ) { innerPadding ->
         Column(
@@ -74,39 +95,45 @@ fun ComplaintsScreen(
                 .padding(innerPadding)
                 .background(OffWhiteBackground)
         ) {
-            // Tabs
-            TabRow(
-                selectedTabIndex = selectedTab,
-                containerColor = PureWhiteSurface,
-                contentColor = NavyPrimary
+            // Candy Header
+            Surface(
+                color = PureWhiteSurface,
+                shadowElevation = 2.dp,
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Tab(
-                    selected = selectedTab == 0,
-                    onClick = { selectedTab = 0 },
-                    text = { Text("My Complaints", fontSize = 12.sp, fontWeight = FontWeight.SemiBold) }
-                )
-                Tab(
-                    selected = selectedTab == 1,
-                    onClick = { selectedTab = 1 },
-                    text = { Text("All Society Issues", fontSize = 12.sp, fontWeight = FontWeight.SemiBold) }
-                )
-                Tab(
-                    selected = selectedTab == 2,
-                    onClick = { selectedTab = 2 },
-                    text = { Text("Resolved Archive", fontSize = 12.sp, fontWeight = FontWeight.SemiBold) }
-                )
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 10.dp)
+                ) {
+                    CandySectionHeading(
+                        title = if (isFlatOwnerOnly) "My Flat Issues & Work Orders" else "Complaints & Service Tickets",
+                        subtitle = if (isFlatOwnerOnly) "Flat $currentFlatId • Private to your household" else "Society-wide Maintenance Tickets",
+                        icon = Icons.Default.Build,
+                        flavor = LightCandyFlavor.PASTEL_CORAL,
+                        badgeText = "${filteredList.size} Tickets"
+                    )
+
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    CandyPillTabRow(
+                        tabs = tabs,
+                        selectedIndex = selectedTab.coerceIn(0, tabs.size - 1),
+                        onTabSelected = { selectedTab = it }
+                    )
+                }
             }
 
-            // Category Chips Row
+            // Category Chips Row in light candy style
             LazyRow(
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 items(categories) { cat ->
                     FilterChip(
                         selected = selectedCategoryFilter == cat,
                         onClick = { selectedCategoryFilter = cat },
-                        label = { Text(cat, fontSize = 12.sp) }
+                        label = { Text(cat, fontSize = 11.5.sp) }
                     )
                 }
             }
@@ -189,19 +216,44 @@ fun DetailedComplaintCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = "#${complaint.id}",
-                        fontWeight = FontWeight.Bold,
-                        color = NavyPrimary,
-                        fontSize = 14.sp
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = complaint.category,
-                        color = TextSecondary,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Medium
-                    )
+                    val (catBg, catTint, catIcon) = when (complaint.category) {
+                        "Water" -> Triple(StatusInfoBg, StatusInfo, Icons.Default.WaterDrop)
+                        "Electrical" -> Triple(GoldContainer, GoldAccent, Icons.Default.Bolt)
+                        "Lift" -> Triple(Color(0xFFFEF3C7), GoldChampagne, Icons.Default.Elevator)
+                        "Security" -> Triple(StatusSuccessBg, StatusSuccess, Icons.Default.Security)
+                        "Housekeeping" -> Triple(Color(0xFFEDE9FE), Color(0xFF7C3AED), Icons.Default.CleaningServices)
+                        else -> Triple(SurfaceVariant, NavyPrimary, Icons.Default.Build)
+                    }
+                    Box(
+                        modifier = Modifier
+                            .size(46.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(catBg)
+                            .border(1.dp, catTint.copy(alpha = 0.25f), RoundedCornerShape(14.dp)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = catIcon,
+                            contentDescription = null,
+                            tint = catTint,
+                            modifier = Modifier.size(26.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column {
+                        Text(
+                            text = "#${complaint.id}",
+                            fontWeight = FontWeight.Bold,
+                            color = NavyPrimary,
+                            fontSize = 14.5.sp
+                        )
+                        Text(
+                            text = complaint.category,
+                            color = TextSecondary,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
                 }
 
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -212,7 +264,7 @@ fun DetailedComplaintCard(
                 }
             }
 
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(10.dp))
             Text(
                 text = complaint.description,
                 fontSize = 14.sp,
@@ -222,7 +274,7 @@ fun DetailedComplaintCard(
             Spacer(modifier = Modifier.height(6.dp))
 
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.LocationOn, contentDescription = null, tint = GoldChampagne, modifier = Modifier.size(14.dp))
+                Icon(Icons.Default.LocationOn, contentDescription = null, tint = GoldChampagne, modifier = Modifier.size(18.dp))
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
                     text = "${complaint.tower} • Floor ${complaint.floor} • ${complaint.location}",
@@ -468,24 +520,28 @@ fun ComplaintDetailModal(
                             modifier = Modifier.weight(1f)
                         )
                         Spacer(modifier = Modifier.width(6.dp))
-                        IconButton(
+                        CandyIconButton(
+                            icon = Icons.Default.Send,
                             onClick = {
                                 if (newComment.isNotBlank()) {
                                     viewModel.addComplaintComment(complaint.id, newComment)
                                     newComment = ""
                                 }
-                            }
-                        ) {
-                            Icon(Icons.Default.Send, contentDescription = "Send", tint = NavyPrimary)
-                        }
+                            },
+                            flavor = CandyFlavor.SAPPHIRE,
+                            modifier = Modifier.size(40.dp),
+                            iconSize = 18.dp
+                        )
                     }
                 }
             }
         },
         confirmButton = {
-            Button(onClick = onDismiss, colors = ButtonDefaults.buttonColors(containerColor = NavyPrimary)) {
-                Text("Done")
-            }
+            CandyButton(
+                text = "Done",
+                onClick = onDismiss,
+                flavor = CandyFlavor.NAVY
+            )
         }
     )
 }

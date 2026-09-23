@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -16,18 +18,31 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ui.ArihantViewModel
+import com.example.ui.components.CandyButton
+import com.example.ui.components.CandyFlavor
 import com.example.ui.theme.*
+import com.example.ui.util.SoundNotificationHelper
 
 @Composable
 fun EmergencyScreen(
     viewModel: ArihantViewModel,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
+    val currentUserName by viewModel.currentUserName.collectAsState()
+    val currentFlatId by viewModel.currentFlatId.collectAsState()
+    val myFlat by viewModel.myFlat.collectAsState()
+    val isSoundEnabled by viewModel.isSoundNotificationEnabled.collectAsState()
+
+    val residentTower = myFlat?.tower ?: "Kaveh"
+    val residentFloor = myFlat?.floor ?: 3
+
     var callingContact by remember { mutableStateOf<Pair<String, String>?>(null) }
     var showSosDialog by remember { mutableStateOf(false) }
 
@@ -220,9 +235,20 @@ fun EmergencyScreen(
                 }
             },
             confirmButton = {
-                Button(onClick = { callingContact = null }, colors = ButtonDefaults.buttonColors(containerColor = StatusSuccess)) {
-                    Text("Call Now")
-                }
+                CandyButton(
+                    text = "Call Now",
+                    onClick = {
+                        try {
+                            val cleanNumber = callingContact!!.second.replace(" ", "")
+                            val dialIntent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:$cleanNumber"))
+                            context.startActivity(dialIntent)
+                        } catch (_: Exception) {
+                            // Fallback if no dialer available
+                        }
+                        callingContact = null
+                    },
+                    flavor = CandyFlavor.EMERALD
+                )
             },
             dismissButton = { TextButton(onClick = { callingContact = null }) { Text("Cancel") } }
         )
@@ -233,26 +259,26 @@ fun EmergencyScreen(
             onDismissRequest = { showSosDialog = false },
             title = { Text("🚨 BROADCAST SOS ALERT?", fontWeight = FontWeight.Bold, color = StatusCritical) },
             text = {
-                Text("This will immediately send emergency high-priority notifications to Main Gate Security Marshals, Facility Manager, and Society Chairman with your flat location: Kaveh 1204.")
+                Text("This will immediately send emergency high-priority notifications to Main Gate Security Marshals, Facility Manager, and Society Chairman with your location: $residentTower, Flat $currentFlatId (Floor $residentFloor).")
             },
             confirmButton = {
-                Button(
+                CandyButton(
+                    text = "Confirm Broadcast SOS",
                     onClick = {
                         viewModel.reportComplaint(
                             category = "Emergency",
                             subcategory = "SOS Panic Trigger",
-                            tower = "Kaveh",
-                            floor = 12,
-                            location = "Flat 1204",
-                            description = "SOS Panic trigger activated by resident Rajesh Sharma. Immediate security marshal response required.",
+                            tower = residentTower,
+                            floor = residentFloor,
+                            location = "Flat $currentFlatId ($residentTower)",
+                            description = "SOS Panic trigger activated by resident $currentUserName for Flat $currentFlatId ($residentTower, Floor $residentFloor). Immediate security marshal response required.",
                             priority = "Critical"
                         )
+                        SoundNotificationHelper.playAlertSound(context, isSoundEnabled)
                         showSosDialog = false
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = StatusCritical)
-                ) {
-                    Text("Confirm Broadcast SOS")
-                }
+                    flavor = CandyFlavor.RUBY
+                )
             },
             dismissButton = { TextButton(onClick = { showSosDialog = false }) { Text("Cancel") } }
         )
@@ -299,16 +325,14 @@ fun EmergencyContactCard(
                 }
             }
 
-            Button(
+            CandyButton(
+                text = "Call",
                 onClick = onCall,
-                colors = ButtonDefaults.buttonColors(containerColor = color),
-                shape = RoundedCornerShape(8.dp),
-                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
-            ) {
-                Icon(Icons.Default.Phone, contentDescription = null, modifier = Modifier.size(14.dp))
-                Spacer(modifier = Modifier.width(4.dp))
-                Text("Call", fontSize = 11.sp)
-            }
+                flavor = if (color == StatusCritical) CandyFlavor.RUBY else CandyFlavor.EMERALD,
+                icon = Icons.Default.Phone,
+                shape = RoundedCornerShape(16.dp),
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+            )
         }
     }
 }

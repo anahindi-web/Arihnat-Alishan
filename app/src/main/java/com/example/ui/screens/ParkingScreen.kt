@@ -70,7 +70,7 @@ fun ParkingScreen(
     ) {
         // Multi-level Parking Selector Tabs
         ScrollableTabRow(
-            selectedTabIndex = levels.indexOf(selectedLevel),
+            selectedTabIndex = levels.indexOf(selectedLevel).coerceAtLeast(0),
             containerColor = PureWhiteSurface,
             contentColor = NavyPrimary,
             edgePadding = 16.dp

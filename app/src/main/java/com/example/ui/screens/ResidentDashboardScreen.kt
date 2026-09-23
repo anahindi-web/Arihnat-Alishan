@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -18,12 +19,12 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.data.model.ComplaintEntity
+import com.example.data.model.*
 import com.example.ui.ArihantViewModel
-import com.example.ui.components.QuickActionItem
-import com.example.ui.components.StatusBadge
+import com.example.ui.components.*
 import com.example.ui.theme.*
 
 @Composable
@@ -38,9 +39,16 @@ fun ResidentDashboardScreen(
     val myBills by viewModel.myMaintenanceBills.collectAsState()
     val myVehicles by viewModel.myVehicles.collectAsState()
     val currentRole by viewModel.currentRole.collectAsState()
+    val currentFlatId by viewModel.currentFlatId.collectAsState()
+    val myFlat by viewModel.myFlat.collectAsState()
+    val myFamilyMembers by viewModel.myFamilyMembers.collectAsState()
+    val selectedBackgroundWall by viewModel.selectedBackgroundWall.collectAsState()
     val theme = LocalAppThemePalette.current
 
+    val isFlatOwner = currentRole == UserRole.RESIDENT_OWNER || currentRole == UserRole.FAMILY_MEMBER || currentRole == UserRole.RESIDENT_TENANT
+
     var showReportDialog by remember { mutableStateOf(false) }
+    var editingFamilyMember by remember { mutableStateOf<FamilyMemberEntity?>(null) }
 
     LazyColumn(
         modifier = modifier
@@ -71,340 +79,556 @@ fun ResidentDashboardScreen(
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
                             Box(
                                 modifier = Modifier
-                                    .size(38.dp)
-                                    .clip(CircleShape)
-                                    .background(theme.accent.copy(alpha = 0.2f)),
+                                    .size(48.dp)
+                                    .clip(RoundedCornerShape(14.dp))
+                                    .background(theme.accent.copy(alpha = 0.2f))
+                                    .border(1.dp, theme.accent.copy(alpha = 0.4f), RoundedCornerShape(14.dp)),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Shield,
                                     contentDescription = null,
                                     tint = theme.accent,
-                                    modifier = Modifier.size(22.dp)
+                                    modifier = Modifier.size(26.dp)
                                 )
                             }
-                            Spacer(modifier = Modifier.width(12.dp))
+                            Spacer(modifier = Modifier.width(14.dp))
                             Column {
                                 Text(
                                     text = if (currentRole.isSuperAdmin()) "SUPER ADMIN CONSOLE" else "COMMITTEE MASTER CONTROL",
                                     color = theme.accent,
-                                    fontSize = 12.sp,
+                                    fontSize = 13.sp,
                                     fontWeight = FontWeight.Bold,
                                     letterSpacing = 0.5.sp
                                 )
                                 Text(
                                     text = "Theme Switcher • Amend Members • Notices • Rules",
                                     color = Color.White.copy(alpha = 0.85f),
-                                    fontSize = 11.sp
+                                    fontSize = 11.5.sp
                                 )
                             }
                         }
                         Icon(
                             imageVector = Icons.Default.ChevronRight,
                             contentDescription = null,
-                            tint = theme.accent
+                            tint = theme.accent,
+                            modifier = Modifier.size(24.dp)
                         )
                     }
                 }
             }
         }
 
-        // High-Visibility Emergency Banner
-        item {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { onNavigate("emergency") }
-                    .testTag("emergency_banner"),
-                colors = CardDefaults.cardColors(containerColor = StatusCritical),
-                shape = RoundedCornerShape(14.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(14.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            modifier = Modifier
-                                .size(40.dp)
-                                .clip(CircleShape)
-                                .background(Color.White.copy(alpha = 0.2f)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Warning,
-                                contentDescription = "Emergency",
-                                tint = Color.White,
-                                modifier = Modifier.size(24.dp)
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Column {
-                            Text(
-                                text = "🚨 SOCIETY EMERGENCY HOTLINE",
-                                color = Color.White,
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Bold,
-                                letterSpacing = 0.5.sp
-                            )
-                            Text(
-                                text = "Fire • Medical 102 • Security • Major Leakage",
-                                color = Color.White.copy(alpha = 0.9f),
-                                fontSize = 11.sp
-                            )
-                        }
-                    }
-                    Icon(
-                        imageVector = Icons.Default.ChevronRight,
-                        contentDescription = null,
-                        tint = Color.White
-                    )
-                }
-            }
-        }
-
-        // Quick Actions Grid
+        // Quick Action Grid
         item {
             Card(
                 colors = CardDefaults.cardColors(containerColor = PureWhiteSurface),
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(18.dp),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .border(1.dp, BorderSubtle, RoundedCornerShape(16.dp))
+                    .border(1.dp, BorderSubtle, RoundedCornerShape(18.dp))
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = "Quick Actions",
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = TextPrimary
+                    CandySectionHeading(
+                        title = "Quick Actions",
+                        subtitle = if (isFlatOwner) "Services for Flat $currentFlatId" else "Society Operations & Resident Services",
+                        icon = Icons.Default.Widgets,
+                        flavor = LightCandyFlavor.PASTEL_SKY
                     )
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        QuickActionItem(
-                            icon = Icons.Default.WaterDrop,
-                            label = "Water",
-                            iconTint = StatusInfo,
-                            bgColor = StatusInfoBg,
-                            onClick = { onNavigate("water_lifts") },
-                            modifier = Modifier.weight(1f)
-                        )
-                        QuickActionItem(
-                            icon = Icons.Default.Elevator,
-                            label = "Lifts",
-                            iconTint = GoldChampagne,
-                            bgColor = GoldContainer,
-                            onClick = { onNavigate("water_lifts") },
-                            modifier = Modifier.weight(1f)
-                        )
-                        QuickActionItem(
-                            icon = Icons.Default.LocalParking,
-                            label = "Parking",
-                            iconTint = NavyLight,
-                            bgColor = SurfaceVariant,
-                            onClick = { onNavigate("parking") },
-                            modifier = Modifier.weight(1f)
-                        )
-                        QuickActionItem(
-                            icon = Icons.Default.PersonAdd,
-                            label = "Visitors",
-                            iconTint = StatusSuccess,
-                            bgColor = StatusSuccessBg,
-                            onClick = { onNavigate("visitors") },
-                            modifier = Modifier.weight(1f)
-                        )
+                    if (isFlatOwner) {
+                        // Flat Owner Exclusive Quick Actions (No security, no housekeeping, light candy style)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            LightCandyQuickActionItem(
+                                icon = Icons.Default.HomeWork,
+                                label = "My Flat",
+                                flavor = LightCandyFlavor.PASTEL_SKY,
+                                onClick = { onNavigate("profile") },
+                                modifier = Modifier.weight(1f)
+                            )
+                            LightCandyQuickActionItem(
+                                icon = Icons.Default.Build,
+                                label = "Complaints",
+                                flavor = LightCandyFlavor.PASTEL_CORAL,
+                                onClick = { onNavigate("complaints") },
+                                modifier = Modifier.weight(1f)
+                            )
+                            LightCandyQuickActionItem(
+                                icon = Icons.Default.Forum,
+                                label = "Society Chat",
+                                flavor = LightCandyFlavor.PASTEL_MINT,
+                                onClick = { onNavigate("chat") },
+                                modifier = Modifier.weight(1f)
+                            )
+                            LightCandyQuickActionItem(
+                                icon = Icons.Default.Campaign,
+                                label = "Notices",
+                                flavor = LightCandyFlavor.PASTEL_LAVENDER,
+                                onClick = { onNavigate("notices") },
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            LightCandyQuickActionItem(
+                                icon = Icons.Default.AddAlert,
+                                label = "Report Issue",
+                                flavor = LightCandyFlavor.PASTEL_PEACH,
+                                onClick = { showReportDialog = true },
+                                modifier = Modifier.weight(1f)
+                            )
+                            LightCandyQuickActionItem(
+                                icon = Icons.Default.ReceiptLong,
+                                label = "Maintenance",
+                                flavor = LightCandyFlavor.PASTEL_INDIGO,
+                                onClick = { onNavigate("maintenance") },
+                                modifier = Modifier.weight(1f)
+                            )
+                            LightCandyQuickActionItem(
+                                icon = Icons.Default.Pool,
+                                label = "Amenities",
+                                flavor = LightCandyFlavor.PASTEL_LEMON,
+                                onClick = { onNavigate("amenities") },
+                                modifier = Modifier.weight(1f)
+                            )
+                            LightCandyQuickActionItem(
+                                icon = Icons.Default.DirectionsCar,
+                                label = "Vehicles",
+                                flavor = LightCandyFlavor.PASTEL_ROSE,
+                                onClick = { onNavigate("parking") },
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    } else {
+                        // Committee / Staff full actions
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            LightCandyQuickActionItem(
+                                icon = Icons.Default.WaterDrop,
+                                label = "Water",
+                                flavor = LightCandyFlavor.PASTEL_SKY,
+                                onClick = { onNavigate("water_lifts") },
+                                modifier = Modifier.weight(1f)
+                            )
+                            LightCandyQuickActionItem(
+                                icon = Icons.Default.Elevator,
+                                label = "Lifts",
+                                flavor = LightCandyFlavor.PASTEL_PEACH,
+                                onClick = { onNavigate("water_lifts") },
+                                modifier = Modifier.weight(1f)
+                            )
+                            LightCandyQuickActionItem(
+                                icon = Icons.Default.LocalParking,
+                                label = "Parking",
+                                flavor = LightCandyFlavor.PASTEL_INDIGO,
+                                onClick = { onNavigate("parking") },
+                                modifier = Modifier.weight(1f)
+                            )
+                            LightCandyQuickActionItem(
+                                icon = Icons.Default.PersonAdd,
+                                label = "Visitors",
+                                flavor = LightCandyFlavor.PASTEL_MINT,
+                                onClick = { onNavigate("visitors") },
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            LightCandyQuickActionItem(
+                                icon = Icons.Default.AddAlert,
+                                label = "Report Issue",
+                                flavor = LightCandyFlavor.PASTEL_CORAL,
+                                onClick = { showReportDialog = true },
+                                modifier = Modifier.weight(1f)
+                            )
+                            LightCandyQuickActionItem(
+                                icon = Icons.Default.Pool,
+                                label = "Amenities",
+                                flavor = LightCandyFlavor.PASTEL_LEMON,
+                                onClick = { onNavigate("amenities") },
+                                modifier = Modifier.weight(1f)
+                            )
+                            LightCandyQuickActionItem(
+                                icon = Icons.Default.ReceiptLong,
+                                label = "Maintenance",
+                                flavor = LightCandyFlavor.PASTEL_MINT,
+                                onClick = { onNavigate("maintenance") },
+                                modifier = Modifier.weight(1f)
+                            )
+                            LightCandyQuickActionItem(
+                                icon = Icons.Default.Badge,
+                                label = "My Flat",
+                                flavor = LightCandyFlavor.PASTEL_SKY,
+                                onClick = { onNavigate("profile") },
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            LightCandyQuickActionItem(
+                                icon = Icons.Default.HowToReg,
+                                label = "Staff Punch",
+                                flavor = LightCandyFlavor.PASTEL_MINT,
+                                onClick = { onNavigate("attendance") },
+                                modifier = Modifier.weight(1f)
+                            )
+                            LightCandyQuickActionItem(
+                                icon = Icons.Default.QrCodeScanner,
+                                label = "Guard Patrol",
+                                flavor = LightCandyFlavor.PASTEL_ROSE,
+                                onClick = { onNavigate("patrol") },
+                                modifier = Modifier.weight(1f)
+                            )
+                            LightCandyQuickActionItem(
+                                icon = Icons.Default.Campaign,
+                                label = "Notices",
+                                flavor = LightCandyFlavor.PASTEL_LAVENDER,
+                                onClick = { onNavigate("notices") },
+                                modifier = Modifier.weight(1f)
+                            )
+                            LightCandyQuickActionItem(
+                                icon = Icons.Default.AccountBalance,
+                                label = "Governance",
+                                flavor = LightCandyFlavor.PASTEL_INDIGO,
+                                onClick = { onNavigate("governance") },
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
                     }
+                }
+            }
+        }
 
-                    Spacer(modifier = Modifier.height(8.dp))
+        // Arihant Alishan Architectural Background Wall Showcase & Switcher
+        item {
+            ArihantWallpaperGalleryCard(
+                currentWallResId = selectedBackgroundWall,
+                onSelectWall = { resId ->
+                    viewModel.setBackgroundWall(resId)
+                }
+            )
+        }
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        QuickActionItem(
-                            icon = Icons.Default.AddAlert,
-                            label = "Report Issue",
-                            iconTint = StatusCritical,
-                            bgColor = StatusCriticalBg,
-                            onClick = { showReportDialog = true },
-                            modifier = Modifier.weight(1f)
+        // If flat owner, show My Flat Household Details and Family Members with direct Edit
+        if (isFlatOwner) {
+            item {
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = PureWhiteSurface),
+                    shape = RoundedCornerShape(18.dp),
+                    border = BorderStroke(1.2.dp, Color(0xFFBAE6FD)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(14.dp)) {
+                        CandySectionHeading(
+                            title = "My Flat Household (Flat $currentFlatId)",
+                            subtitle = "Tower ${myFlat?.tower ?: "Kaveh"} • ${myFlat?.flatType ?: "3 BHK"} • ${myFlat?.occupancyStatus ?: "Self Occupied"}",
+                            icon = Icons.Default.HomeWork,
+                            flavor = LightCandyFlavor.PASTEL_SKY,
+                            badgeText = "Verified Record"
                         )
-                        QuickActionItem(
-                            icon = Icons.Default.Pool,
-                            label = "Amenities",
-                            iconTint = Color(0xFF8B5CF6),
-                            bgColor = Color(0xFFEDE9FE),
-                            onClick = { onNavigate("amenities") },
-                            modifier = Modifier.weight(1f)
-                        )
-                        QuickActionItem(
-                            icon = Icons.Default.ReceiptLong,
-                            label = "Maintenance",
-                            iconTint = Color(0xFF0D9488),
-                            bgColor = Color(0xFFCCFBF1),
-                            onClick = { onNavigate("maintenance") },
-                            modifier = Modifier.weight(1f)
-                        )
-                        QuickActionItem(
-                            icon = Icons.Default.Badge,
-                            label = "My Flat",
-                            iconTint = NavyPrimary,
-                            bgColor = SurfaceVariant,
-                            onClick = { onNavigate("profile") },
-                            modifier = Modifier.weight(1f)
-                        )
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        // Balanced phone-optimized 3-column household metadata tile
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(Color(0xFFF0F9FF))
+                                .border(BorderStroke(1.dp, Color(0xFFBAE6FD)), RoundedCornerShape(12.dp))
+                                .padding(vertical = 10.dp, horizontal = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1.15f)) {
+                                Text("Owner Name", fontSize = 10.5.sp, color = TextMuted, maxLines = 1)
+                                Text(
+                                    text = myFlat?.ownerName ?: "Rajesh Sharma",
+                                    fontSize = 12.5.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = TextPrimary,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                            Box(modifier = Modifier.width(1.dp).height(26.dp).background(Color(0xFFBAE6FD)))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Column(
+                                modifier = Modifier.weight(1.0f),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text("Floor / Tower", fontSize = 10.5.sp, color = TextMuted, maxLines = 1)
+                                Text(
+                                    text = "${myFlat?.floor ?: 12}th • ${myFlat?.tower ?: "Kaveh"}",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = TextPrimary,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Box(modifier = Modifier.width(1.dp).height(26.dp).background(Color(0xFFBAE6FD)))
+                            Column(
+                                modifier = Modifier.weight(1.0f),
+                                horizontalAlignment = Alignment.End
+                            ) {
+                                Text("Occupancy", fontSize = 10.5.sp, color = TextMuted, maxLines = 1)
+                                Text(
+                                    text = myFlat?.occupancyStatus ?: "Self Occupied",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF0284C7),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(14.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.weight(1f, fill = false)
+                            ) {
+                                Icon(Icons.Default.People, contentDescription = null, tint = Color(0xFF0284C7), modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "Family Members (${myFamilyMembers.size})",
+                                    fontSize = 13.5.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = TextPrimary,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                            LightCandyButton(
+                                text = "+ Manage",
+                                onClick = { onNavigate("profile") },
+                                flavor = LightCandyFlavor.PASTEL_SKY,
+                                shape = RoundedCornerShape(12.dp),
+                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 5.dp)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            myFamilyMembers.forEach { member ->
+                                Card(
+                                    colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC)),
+                                    shape = RoundedCornerShape(12.dp),
+                                    border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(10.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            modifier = Modifier.weight(1f)
+                                        ) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(36.dp)
+                                                    .clip(CircleShape)
+                                                    .background(if (member.isChild) Color(0xFFEDE9FE) else Color(0xFFE0F2FE)),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Icon(
+                                                    imageVector = if (member.isChild) Icons.Default.ChildCare else Icons.Default.Person,
+                                                    contentDescription = null,
+                                                    tint = if (member.isChild) Color(0xFF8B5CF6) else Color(0xFF0284C7),
+                                                    modifier = Modifier.size(20.dp)
+                                                )
+                                            }
+                                            Spacer(modifier = Modifier.width(10.dp))
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                Text(
+                                                    text = member.fullName,
+                                                    fontSize = 13.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = TextPrimary,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                                Text(
+                                                    text = "${member.relationship} • Age ${member.calculatedAge}${if (member.isChild && member.grade.isNotBlank()) " • ${member.grade}" else ""}",
+                                                    fontSize = 11.sp,
+                                                    color = TextSecondary,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                            }
+                                        }
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        LightCandyButton(
+                                            text = "Edit",
+                                            icon = Icons.Default.Edit,
+                                            onClick = { editingFamilyMember = member },
+                                            flavor = LightCandyFlavor.PASTEL_SKY,
+                                            shape = RoundedCornerShape(10.dp),
+                                            contentPadding = PaddingValues(horizontal = 9.dp, vertical = 5.dp),
+                                            modifier = Modifier.testTag("btn_edit_dash_${member.id}")
+                                        )
+                                    }
+                                }
+                            }
+                        }
                     }
+                }
+            }
 
-                    Spacer(modifier = Modifier.height(8.dp))
+            // Society Community Chat Card (Flat Owner can chat with other members)
+            item {
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFF0FDF4)),
+                    shape = RoundedCornerShape(18.dp),
+                    border = BorderStroke(1.2.dp, Color(0xFFBBF7D0)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        CandySectionHeading(
+                            title = "Society Community Chat",
+                            subtitle = "Chat with neighbors & join resident groups",
+                            icon = Icons.Default.Forum,
+                            flavor = LightCandyFlavor.PASTEL_MINT,
+                            badgeText = "Active"
+                        )
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        QuickActionItem(
-                            icon = Icons.Default.HowToReg,
-                            label = "Staff Punch",
-                            iconTint = Color(0xFF2E7D32),
-                            bgColor = Color(0xFFE8F5E9),
-                            onClick = { onNavigate("attendance") },
-                            modifier = Modifier.weight(1f)
-                        )
-                        QuickActionItem(
-                            icon = Icons.Default.QrCodeScanner,
-                            label = "Guard Patrol",
-                            iconTint = Color(0xFFD32F2F),
-                            bgColor = Color(0xFFFFEBEE),
-                            onClick = { onNavigate("patrol") },
-                            modifier = Modifier.weight(1f)
-                        )
-                        QuickActionItem(
-                            icon = Icons.Default.Campaign,
-                            label = "Notices",
-                            iconTint = GoldChampagne,
-                            bgColor = GoldContainer,
-                            onClick = { onNavigate("notices") },
-                            modifier = Modifier.weight(1f)
-                        )
-                        QuickActionItem(
-                            icon = Icons.Default.AccountBalance,
-                            label = "Governance",
-                            iconTint = NavyPrimary,
-                            bgColor = SurfaceVariant,
-                            onClick = { onNavigate("governance") },
-                            modifier = Modifier.weight(1f)
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            listOf("#general", "#buy-sell", "#cultural", "#sports").forEach { channel ->
+                                Surface(
+                                    shape = RoundedCornerShape(12.dp),
+                                    color = Color.White,
+                                    border = BorderStroke(1.dp, Color(0xFF86EFAC)),
+                                    modifier = Modifier.padding(vertical = 2.dp)
+                                ) {
+                                    Text(
+                                        text = channel,
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = Color(0xFF15803D),
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        CandyButton(
+                            text = "Open Community Chat",
+                            onClick = { onNavigate("chat") },
+                            flavor = CandyFlavor.EMERALD,
+                            icon = Icons.Default.Forum,
+                            shape = RoundedCornerShape(14.dp),
+                            modifier = Modifier.fillMaxWidth()
                         )
                     }
                 }
             }
         }
 
-        // Quick Status Summary Cards
-        item {
-            Text(
-                text = "Society Operations Status",
-                fontSize = 15.sp,
-                fontWeight = FontWeight.Bold,
-                color = TextPrimary
-            )
-            Spacer(modifier = Modifier.height(8.dp))
+        // Quick Status Summary Cards - Society Operations Status Buttons (Only for Committee & Staff, hidden for Flat Owner)
+        if (!isFlatOwner) {
+            item {
+                CandySectionHeading(
+                    title = "Society Operations Status",
+                    subtitle = "Real-time automated facility telemetry",
+                    icon = Icons.Default.Speed,
+                    flavor = LightCandyFlavor.PASTEL_SKY
+                )
+                Spacer(modifier = Modifier.height(10.dp))
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                // Water card
-                Card(
-                    modifier = Modifier
-                        .weight(1f)
-                        .clickable { onNavigate("water_lifts") },
-                    colors = CardDefaults.cardColors(containerColor = PureWhiteSurface),
-                    shape = RoundedCornerShape(12.dp),
-                    border = CardDefaults.outlinedCardBorder()
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Column(modifier = Modifier.padding(12.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.WaterDrop, contentDescription = null, tint = StatusInfo, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Water Supply", fontSize = 12.sp, fontWeight = FontWeight.Medium, color = TextMuted)
-                        }
-                        Spacer(modifier = Modifier.height(6.dp))
-                        Text("Normal", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = StatusSuccess)
-                        Text("Towers: 4/4 Active", fontSize = 11.sp, color = TextSecondary)
-                    }
+                    // Water Candy Status Button
+                    CandyOperationStatusButton(
+                        title = "Water Supply",
+                        statusText = "Normal (100%)",
+                        subtitleText = "Towers: 4/4 Active",
+                        icon = Icons.Default.WaterDrop,
+                        flavor = CandyFlavor.SAPPHIRE,
+                        onClick = { onNavigate("water_lifts") },
+                        modifier = Modifier.weight(1f)
+                    )
+
+                    // Power DG Candy Status Button
+                    CandyOperationStatusButton(
+                        title = "Power Backup",
+                        statusText = "DG Ready",
+                        subtitleText = "Grid Power Active",
+                        icon = Icons.Default.Bolt,
+                        flavor = CandyFlavor.AMBER,
+                        onClick = { onNavigate("water_lifts") },
+                        modifier = Modifier.weight(1f)
+                    )
                 }
 
-                // Power & DG card
-                Card(
-                    modifier = Modifier.weight(1f),
-                    colors = CardDefaults.cardColors(containerColor = PureWhiteSurface),
-                    shape = RoundedCornerShape(12.dp),
-                    border = CardDefaults.outlinedCardBorder()
-                ) {
-                    Column(modifier = Modifier.padding(12.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Bolt, contentDescription = null, tint = GoldAccent, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Power Backup", fontSize = 12.sp, fontWeight = FontWeight.Medium, color = TextMuted)
-                        }
-                        Spacer(modifier = Modifier.height(6.dp))
-                        Text("DG Ready", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = StatusSuccess)
-                        Text("Grid Power Active", fontSize = 11.sp, color = TextSecondary)
-                    }
-                }
-            }
+                Spacer(modifier = Modifier.height(10.dp))
 
-            Spacer(modifier = Modifier.height(10.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                // Lifts card
-                Card(
-                    modifier = Modifier
-                        .weight(1f)
-                        .clickable { onNavigate("water_lifts") },
-                    colors = CardDefaults.cardColors(containerColor = PureWhiteSurface),
-                    shape = RoundedCornerShape(12.dp),
-                    border = CardDefaults.outlinedCardBorder()
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Column(modifier = Modifier.padding(12.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Elevator, contentDescription = null, tint = GoldChampagne, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Lifts", fontSize = 12.sp, fontWeight = FontWeight.Medium, color = TextMuted)
-                        }
-                        Spacer(modifier = Modifier.height(6.dp))
-                        Text("7/8 Operational", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = NavyPrimary)
-                        Text("Kaveh L-2 in AMC", fontSize = 11.sp, color = StatusWarning)
-                    }
-                }
+                    // Lifts Candy Status Button
+                    CandyOperationStatusButton(
+                        title = "High-Speed Lifts",
+                        statusText = "7/8 Operational",
+                        subtitleText = "Kaveh L-2 in AMC",
+                        icon = Icons.Default.Elevator,
+                        flavor = CandyFlavor.PURPLE,
+                        onClick = { onNavigate("water_lifts") },
+                        modifier = Modifier.weight(1f)
+                    )
 
-                // Security gate card
-                Card(
-                    modifier = Modifier.weight(1f),
-                    colors = CardDefaults.cardColors(containerColor = PureWhiteSurface),
-                    shape = RoundedCornerShape(12.dp),
-                    border = CardDefaults.outlinedCardBorder()
-                ) {
-                    Column(modifier = Modifier.padding(12.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Security, contentDescription = null, tint = StatusSuccess, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Security", fontSize = 12.sp, fontWeight = FontWeight.Medium, color = TextMuted)
-                        }
-                        Spacer(modifier = Modifier.height(6.dp))
-                        Text("Gate 1 & 2 Active", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = StatusSuccess)
-                        Text("CCTV Online", fontSize = 11.sp, color = TextSecondary)
-                    }
+                    // Gate Security Candy Status Button
+                    CandyOperationStatusButton(
+                        title = "Gate Security",
+                        statusText = "Gates 1 & 2 Active",
+                        subtitleText = "CCTV & Patrols ON",
+                        icon = Icons.Default.Security,
+                        flavor = CandyFlavor.EMERALD,
+                        onClick = { onNavigate("visitors") },
+                        modifier = Modifier.weight(1f)
+                    )
                 }
             }
         }
@@ -440,19 +664,13 @@ fun ResidentDashboardScreen(
                         )
                     }
 
-                    Button(
+                    CandyButton(
+                        text = "+ Report Issue",
                         onClick = { showReportDialog = true },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = GoldAccent,
-                            contentColor = NavyPrimary
-                        ),
-                        shape = RoundedCornerShape(10.dp),
+                        flavor = CandyFlavor.GOLD,
+                        icon = Icons.Default.Add,
                         modifier = Modifier.testTag("report_issue_button")
-                    ) {
-                        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("+ Report Issue", fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                    }
+                    )
                 }
             }
         }
@@ -464,15 +682,21 @@ fun ResidentDashboardScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "My Open Complaints",
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = TextPrimary
+                CandySectionHeading(
+                    title = if (isFlatOwner) "My Flat Complaints" else "My Open Complaints",
+                    subtitle = if (isFlatOwner) "Tickets submitted for Flat $currentFlatId" else "Your open active tickets",
+                    icon = Icons.Default.Build,
+                    flavor = LightCandyFlavor.PASTEL_CORAL,
+                    badgeText = "${myComplaints.size} Active",
+                    modifier = Modifier.weight(1f)
                 )
-                TextButton(onClick = { onNavigate("complaints") }) {
-                    Text("View All (${myComplaints.size})", color = NavyPrimary, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-                }
+                LightCandyButton(
+                    text = "View All",
+                    onClick = { onNavigate("complaints") },
+                    flavor = LightCandyFlavor.PASTEL_CORAL,
+                    shape = RoundedCornerShape(12.dp),
+                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 5.dp)
+                )
             }
 
             if (myComplaints.isEmpty()) {
@@ -574,15 +798,21 @@ fun ResidentDashboardScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "Society Notices & Updates",
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = TextPrimary
+                CandySectionHeading(
+                    title = "Society Notifications & Notices",
+                    subtitle = "Official broadcasts from Society Management",
+                    icon = Icons.Default.Notifications,
+                    flavor = LightCandyFlavor.PASTEL_LAVENDER,
+                    badgeText = "${notices.size} Updates",
+                    modifier = Modifier.weight(1f)
                 )
-                TextButton(onClick = { onNavigate("notices") }) {
-                    Text("View Board", color = NavyPrimary, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-                }
+                LightCandyButton(
+                    text = "View Board",
+                    onClick = { onNavigate("notices") },
+                    flavor = LightCandyFlavor.PASTEL_LAVENDER,
+                    shape = RoundedCornerShape(12.dp),
+                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 5.dp)
+                )
             }
 
             notices.take(2).forEach { notice ->
@@ -602,8 +832,8 @@ fun ResidentDashboardScreen(
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(36.dp)
-                                .clip(RoundedCornerShape(8.dp))
+                                .size(46.dp)
+                                .clip(RoundedCornerShape(12.dp))
                                 .background(if (notice.priority == "High") StatusWarningBg else SurfaceVariant),
                             contentAlignment = Alignment.Center
                         ) {
@@ -611,7 +841,7 @@ fun ResidentDashboardScreen(
                                 imageVector = if (notice.category == "Water") Icons.Default.WaterDrop else Icons.Default.Campaign,
                                 contentDescription = null,
                                 tint = if (notice.priority == "High") StatusWarning else NavyPrimary,
-                                modifier = Modifier.size(20.dp)
+                                modifier = Modifier.size(26.dp)
                             )
                         }
                         Spacer(modifier = Modifier.width(12.dp))
@@ -648,12 +878,84 @@ fun ResidentDashboardScreen(
                 Spacer(modifier = Modifier.height(8.dp))
             }
         }
+
+        // Compact Society Emergency Hotline (Small & discreet placement)
+        item {
+            Spacer(modifier = Modifier.height(6.dp))
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onNavigate("emergency") }
+                    .testTag("emergency_banner"),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF1F2)),
+                shape = RoundedCornerShape(16.dp),
+                border = BorderStroke(1.dp, Color(0xFFFECDD3))
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 14.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                        Box(
+                            modifier = Modifier
+                                .size(30.dp)
+                                .clip(CircleShape)
+                                .background(StatusCritical),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Warning,
+                                contentDescription = "Emergency",
+                                tint = Color.White,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Column {
+                            Text(
+                                text = "Society Emergency Hotline (24×7)",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF9F1239)
+                            )
+                            Text(
+                                text = "Security Gate 1 • Medical 102 • Fire 101",
+                                fontSize = 10.5.sp,
+                                color = TextSecondary
+                            )
+                        }
+                    }
+                    CandyButton(
+                        text = "Call SOS",
+                        onClick = { onNavigate("emergency") },
+                        flavor = CandyFlavor.RUBY,
+                        shape = RoundedCornerShape(14.dp),
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(14.dp))
+        }
     }
 
     if (showReportDialog) {
         ReportComplaintDialog(
             viewModel = viewModel,
             onDismiss = { showReportDialog = false }
+        )
+    }
+
+    editingFamilyMember?.let { memberToEdit ->
+        EditFamilyMemberDialog(
+            member = memberToEdit,
+            onDismiss = { editingFamilyMember = null },
+            onSave = { updated ->
+                viewModel.updateFamilyMember(updated)
+                editingFamilyMember = null
+            }
         )
     }
 }
@@ -743,6 +1045,13 @@ fun ReportComplaintDialog(
     viewModel: ArihantViewModel,
     onDismiss: () -> Unit
 ) {
+    val myFlat by viewModel.myFlat.collectAsState()
+    val currentFlatId by viewModel.currentFlatId.collectAsState()
+
+    val initialTower = myFlat?.tower ?: "Kaveh"
+    val initialFloor = myFlat?.floor?.toString() ?: "3"
+    val initialLocation = "Flat $currentFlatId"
+
     val categories = listOf(
         "Water", "Lift", "Garbage & Waste", "Cleanliness", "Parking",
         "Security", "Noise", "Electricity", "Plumbing", "Garden & Amenities",
@@ -751,9 +1060,9 @@ fun ReportComplaintDialog(
     val towers = listOf("Kaveh", "Baraz-1", "Baraz-2", "Zenath")
 
     var selectedCategory by remember { mutableStateOf("Water") }
-    var selectedTower by remember { mutableStateOf("Kaveh") }
-    var floor by remember { mutableStateOf("12") }
-    var location by remember { mutableStateOf("12th Floor Lift Lobby") }
+    var selectedTower by remember { mutableStateOf(initialTower) }
+    var floor by remember { mutableStateOf(initialFloor) }
+    var location by remember { mutableStateOf(initialLocation) }
     var description by remember { mutableStateOf("") }
     var priority by remember { mutableStateOf("High") }
     var hasPhoto by remember { mutableStateOf(false) }
@@ -948,7 +1257,8 @@ fun ReportComplaintDialog(
             }
         },
         confirmButton = {
-            Button(
+            CandyButton(
+                text = "Submit Complaint",
                 onClick = {
                     if (description.isNotBlank()) {
                         viewModel.reportComplaint(
@@ -964,10 +1274,8 @@ fun ReportComplaintDialog(
                         onDismiss()
                     }
                 },
-                colors = ButtonDefaults.buttonColors(containerColor = NavyPrimary)
-            ) {
-                Text("Submit Complaint", color = Color.White)
-            }
+                flavor = CandyFlavor.SAPPHIRE
+            )
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {

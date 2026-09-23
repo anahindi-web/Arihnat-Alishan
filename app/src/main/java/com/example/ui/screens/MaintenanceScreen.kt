@@ -23,6 +23,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.MaintenanceBillEntity
 import com.example.ui.ArihantViewModel
+import com.example.ui.components.CandyButton
+import com.example.ui.components.CandyFlavor
 import com.example.ui.components.StatusBadge
 import com.example.ui.theme.*
 
@@ -120,19 +122,17 @@ fun MaintenanceScreen(
 
                             Spacer(modifier = Modifier.height(14.dp))
 
-                            Button(
+                            CandyButton(
+                                text = "Pay Now ₹${activeBill.totalAmount}",
                                 onClick = { selectedBillForPayment = activeBill },
-                                colors = ButtonDefaults.buttonColors(containerColor = NavyPrimary),
-                                shape = RoundedCornerShape(10.dp),
+                                flavor = CandyFlavor.EMERALD,
+                                icon = Icons.Default.Payment,
+                                shape = RoundedCornerShape(14.dp),
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .height(48.dp)
                                     .testTag("pay_maintenance_button")
-                            ) {
-                                Icon(Icons.Default.Payment, contentDescription = null, modifier = Modifier.size(18.dp))
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text("Pay Now ₹${activeBill.totalAmount}", fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                            }
+                            )
                         }
                     }
                 }
@@ -297,12 +297,11 @@ fun PayMaintenanceDialog(
             }
         },
         confirmButton = {
-            Button(
+            CandyButton(
+                text = "Authorize Payment ₹${bill.totalAmount}",
                 onClick = { onPay(selectedMethod) },
-                colors = ButtonDefaults.buttonColors(containerColor = NavyPrimary)
-            ) {
-                Text("Authorize Payment ₹${bill.totalAmount}")
-            }
+                flavor = CandyFlavor.EMERALD
+            )
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
     )
@@ -365,9 +364,11 @@ fun OfficialReceiptDialog(
             }
         },
         confirmButton = {
-            Button(onClick = onDismiss, colors = ButtonDefaults.buttonColors(containerColor = NavyPrimary)) {
-                Text("Download / Print")
-            }
+            CandyButton(
+                text = "Download / Print",
+                onClick = onDismiss,
+                flavor = CandyFlavor.NAVY
+            )
         }
     )
 }

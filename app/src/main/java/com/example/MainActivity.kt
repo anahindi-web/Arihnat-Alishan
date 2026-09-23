@@ -13,6 +13,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -27,6 +28,7 @@ import com.example.ui.screens.*
 import com.example.ui.theme.ArihantAlishanTheme
 import com.example.ui.theme.NavyPrimary
 import com.example.ui.theme.OffWhiteBackground
+import com.example.ui.util.SoundNotificationHelper
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -52,6 +54,14 @@ fun ArihantApp(
     val currentFlatId by viewModel.currentFlatId.collectAsState()
     val currentScreen by viewModel.currentScreen.collectAsState()
     val activeAlert by viewModel.activeAlert.collectAsState()
+    val selectedBackgroundWall by viewModel.selectedBackgroundWall.collectAsState()
+    val context = LocalContext.current
+
+    LaunchedEffect(activeAlert) {
+        if (activeAlert != null) {
+            SoundNotificationHelper.playNotificationSound(context)
+        }
+    }
 
     // Handle back button: return to home screen if on a sub-screen
     BackHandler(enabled = currentScreen != "home") {
@@ -62,7 +72,7 @@ fun ArihantApp(
         modifier = Modifier.fillMaxSize(),
         topBar = {
             Column {
-                if (currentScreen in listOf("home", "complaints", "visitors", "amenities", "more")) {
+                if (currentScreen in listOf("home", "complaints", "chat", "visitors", "amenities", "more")) {
                     ArihantHeader(
                         currentRole = currentRole,
                         userName = currentUserName,
@@ -75,7 +85,8 @@ fun ArihantApp(
                         },
                         onEmergencyClicked = { viewModel.navigateTo("emergency") },
                         onNoticesClicked = { viewModel.navigateTo("notices") },
-                        onSuperAdminClicked = { viewModel.navigateTo("super_admin") }
+                        onSuperAdminClicked = { viewModel.navigateTo("super_admin") },
+                        backgroundWallResId = selectedBackgroundWall
                     )
                 } else if (currentScreen in listOf("master_data", "super_admin", "attendance", "patrol")) {
                     // Dedicated top app bar provided by the screen
@@ -118,7 +129,7 @@ fun ArihantApp(
         },
         bottomBar = {
             ArihantBottomBar(
-                currentScreen = if (currentScreen in listOf("home", "complaints", "visitors", "amenities", "more")) currentScreen else "more",
+                currentScreen = if (currentScreen in listOf("home", "complaints", "chat", "amenities", "more")) currentScreen else "more",
                 onNavigate = { route -> viewModel.navigateTo(route) }
             )
         }
@@ -135,6 +146,7 @@ fun ArihantApp(
                     onNavigate = { screen -> viewModel.navigateTo(screen) }
                 )
                 "complaints" -> ComplaintsScreen(viewModel = viewModel)
+                "chat" -> CommunityChatScreen(viewModel = viewModel)
                 "visitors" -> VisitorsScreen(viewModel = viewModel)
                 "amenities" -> AmenitiesScreen(viewModel = viewModel)
                 "more" -> MoreMenuScreen(
@@ -186,19 +198,21 @@ fun ArihantApp(
         }
     }
 
-    // High Priority Popup Alert for Committee Members & Society Managers when 1-Hour Patrol is Missed
+    // High Priority Popup Alert for Committee Members & Security Staff when 1-Hour Patrol is Missed
     val activeMissedAlertPopup by viewModel.activeMissedAlertPopup.collectAsState()
-    activeMissedAlertPopup?.let { checkpoint ->
-        MissedPatrolAlertPopup(
-            checkpoint = checkpoint,
-            onDismiss = { viewModel.dismissMissedAlertPopup(checkpoint.checkpointId) },
-            onAcknowledge = { resolutionNotes ->
-                viewModel.acknowledgeMissedAlert(checkpoint.checkpointId, resolutionNotes)
-            },
-            onNavigateToPatrol = {
-                viewModel.dismissMissedAlertPopup(null)
-                viewModel.navigateTo("patrol")
-            }
-        )
+    if (currentRole.isCommitteeMember() || currentRole == UserRole.SECURITY_GUARD || currentRole == UserRole.SECURITY_INCHARGE) {
+        activeMissedAlertPopup?.let { checkpoint ->
+            MissedPatrolAlertPopup(
+                checkpoint = checkpoint,
+                onDismiss = { viewModel.dismissMissedAlertPopup(checkpoint.checkpointId) },
+                onAcknowledge = { resolutionNotes ->
+                    viewModel.acknowledgeMissedAlert(checkpoint.checkpointId, resolutionNotes)
+                },
+                onNavigateToPatrol = {
+                    viewModel.dismissMissedAlertPopup(null)
+                    viewModel.navigateTo("patrol")
+                }
+            )
+        }
     }
 }

@@ -44,6 +44,10 @@ class ArihantRepository(private val appDao: AppDao) {
     val allStaffAttendance: Flow<List<StaffAttendanceEntity>> = appDao.getAllStaffAttendance()
     val allPatrolCheckpoints: Flow<List<PatrolCheckpointEntity>> = appDao.getAllPatrolCheckpoints()
     val allPatrolScanLogs: Flow<List<PatrolScanLogEntity>> = appDao.getAllPatrolScanLogs()
+    val allInvitations: Flow<List<InvitationEntity>> = appDao.getAllInvitations()
+    val allProfileCorrections: Flow<List<OwnerProfileCorrectionRequestEntity>> = appDao.getAllProfileCorrections()
+    val allRentAgreementNotifications: Flow<List<RentAgreementNotificationEntity>> = appDao.getAllRentAgreementNotifications()
+    val emergencyVolunteers: Flow<List<FlatEntity>> = appDao.getEmergencyVolunteers()
 
     fun getFlat(flatId: String): Flow<FlatEntity?> = appDao.getFlatById(flatId)
     fun getFamilyMembers(flatId: String): Flow<List<FamilyMemberEntity>> = appDao.getFamilyMembers(flatId)
@@ -57,6 +61,136 @@ class ArihantRepository(private val appDao: AppDao) {
     fun getBookingsForFlat(flat: String): Flow<List<AmenityBookingEntity>> = appDao.getBookingsForFlat(flat)
     fun getBillsForFlat(flat: String): Flow<List<MaintenanceBillEntity>> = appDao.getMaintenanceBillsForFlat(flat)
     fun getVisitorsForFlat(flat: String): Flow<List<VisitorEntity>> = appDao.getVisitorsForFlat(flat)
+    fun getInvitationsForFlat(flatId: String): Flow<List<InvitationEntity>> = appDao.getInvitationsForFlat(flatId)
+    fun getProfileCorrectionsForFlat(flatId: String): Flow<List<OwnerProfileCorrectionRequestEntity>> = appDao.getProfileCorrectionsForFlat(flatId)
+    fun getRentAgreementNotificationsForFlat(flatId: String): Flow<List<RentAgreementNotificationEntity>> = appDao.getRentAgreementNotificationsForFlat(flatId)
+
+    // Society Community Chat
+    val allChatMessages: Flow<List<SocietyChatMessageEntity>> = appDao.getAllChatMessages()
+    fun getChatMessagesByChannel(channel: String): Flow<List<SocietyChatMessageEntity>> = appDao.getChatMessagesByChannel(channel)
+    suspend fun sendChatMessage(message: SocietyChatMessageEntity) {
+        appDao.insertChatMessage(message)
+    }
+    suspend fun deleteChatMessage(id: Long) {
+        appDao.deleteChatMessage(id)
+    }
+
+    // Master Units & System Users (Super Admin & Master-User Relationship)
+    val allMasterUnits: Flow<List<MasterUnitEntity>> = appDao.getAllMasterUnits()
+    val allSystemUsers: Flow<List<SystemUserEntity>> = appDao.getAllSystemUsers()
+    fun getUsersByMasterId(masterId: String): Flow<List<SystemUserEntity>> = appDao.getUsersByMasterId(masterId)
+    fun getMasterUnitById(masterId: String): Flow<MasterUnitEntity?> = appDao.getMasterUnitById(masterId)
+
+    suspend fun addMasterUnit(master: MasterUnitEntity, currentUser: String, userRole: String) {
+        appDao.insertMasterUnit(master)
+        logAudit(
+            user = currentUser,
+            role = userRole,
+            action = "CREATE_MASTER_UNIT",
+            module = "Super Admin",
+            record = master.masterId,
+            details = "Created Master '${master.masterName}' (Head: ${master.headOfMaster}, Type: ${master.masterType})"
+        )
+    }
+
+    suspend fun updateMasterUnit(master: MasterUnitEntity, currentUser: String, userRole: String) {
+        appDao.updateMasterUnit(master)
+        logAudit(
+            user = currentUser,
+            role = userRole,
+            action = "UPDATE_MASTER_UNIT",
+            module = "Super Admin",
+            record = master.masterId,
+            details = "Updated Master '${master.masterName}' (Status: ${master.status}, Head: ${master.headOfMaster})"
+        )
+    }
+
+    suspend fun setMasterStatus(masterId: String, status: String, currentUser: String, userRole: String) {
+        val master = appDao.getMasterUnitById(masterId).firstOrNull() ?: return
+        val updated = master.copy(status = status)
+        appDao.updateMasterUnit(updated)
+        logAudit(
+            user = currentUser,
+            role = userRole,
+            action = "CHANGE_MASTER_STATUS",
+            module = "Super Admin",
+            record = masterId,
+            details = "Changed Master $masterId status from ${master.status} to $status"
+        )
+    }
+
+    suspend fun deleteMasterUnit(masterId: String, currentUser: String, userRole: String) {
+        appDao.deleteMasterUnit(masterId)
+        logAudit(
+            user = currentUser,
+            role = userRole,
+            action = "DELETE_MASTER_UNIT",
+            module = "Super Admin",
+            record = masterId,
+            details = "Removed Master $masterId from system"
+        )
+    }
+
+    suspend fun addSystemUser(user: SystemUserEntity, currentUser: String, userRole: String) {
+        appDao.insertSystemUser(user)
+        logAudit(
+            user = currentUser,
+            role = userRole,
+            action = "ADD_SYSTEM_USER",
+            module = "User Management",
+            record = user.userId,
+            details = "Added user ${user.fullName} (${user.roleName}) linked to Master '${user.linkedMasterName}'"
+        )
+    }
+
+    suspend fun reassignUserMaster(userId: String, newMasterId: String, newMasterName: String, currentUser: String, userRole: String) {
+        appDao.reassignUserMaster(userId, newMasterId, newMasterName)
+        logAudit(
+            user = currentUser,
+            role = userRole,
+            action = "REASSIGN_USER_MASTER",
+            module = "Super Admin",
+            record = userId,
+            details = "Reassigned user $userId to Master $newMasterName ($newMasterId)"
+        )
+    }
+
+    suspend fun updateUserRoleAndPermissions(userId: String, newRole: String, permissions: String, currentUser: String, userRole: String) {
+        appDao.updateUserRoleAndPermissions(userId, newRole, permissions)
+        logAudit(
+            user = currentUser,
+            role = userRole,
+            action = "UPDATE_USER_PERMISSIONS",
+            module = "Super Admin",
+            record = userId,
+            details = "Updated user $userId role to $newRole (Permissions: $permissions)"
+        )
+    }
+
+    suspend fun setUserStatus(userId: String, status: String, currentUser: String, userRole: String) {
+        appDao.updateUserStatus(userId, status)
+        logAudit(
+            user = currentUser,
+            role = userRole,
+            action = "UPDATE_USER_STATUS",
+            module = "Super Admin",
+            record = userId,
+            details = "Changed status of user $userId to $status"
+        )
+    }
+
+    suspend fun deleteSystemUser(userId: String, currentUser: String, userRole: String) {
+        appDao.deleteSystemUser(userId)
+        logAudit(
+            user = currentUser,
+            role = userRole,
+            action = "DELETE_SYSTEM_USER",
+            module = "Super Admin",
+            record = userId,
+            details = "Removed user $userId from registry"
+        )
+    }
+
 
     // Actions & Business Rules
     suspend fun updateFlatOccupancy(flatId: String, newStatus: String, currentUser: String, userRole: String) {
@@ -831,6 +965,43 @@ class ArihantRepository(private val appDao: AppDao) {
 
         // Seed Flats
         val flats = listOf(
+            FlatEntity(
+                flatId = "K-302",
+                tower = "Kaveh",
+                floor = 3,
+                flatNumber = "302",
+                ownerName = "Rahul Sharma",
+                ownerPhone = "+91 98201 12345",
+                ownerEmail = "rahul.sharma@example.com",
+                possessionDate = "15-Dec-2022",
+                occupancyStatus = "Self Occupied",
+                flatType = "3 BHK Royal",
+                areaSqFt = 1650,
+                coOwnerName = "Priya Sharma",
+                coOwnerPhone = "+91 98201 99887",
+                occupation = "Professional",
+                jobOrEmployment = "Senior IT Architect",
+                industry = "Information Technology",
+                companyOrBusinessName = "TechNova Solutions Ltd.",
+                skills = "Enterprise IT, Cybersecurity, Disaster Recovery, First Aid",
+                howCanHelpSociety = "IT / Technology, First Aid, Security Support, Fire Safety",
+                emergencyVolunteer = "Yes",
+                volunteerAreas = "Technical Support, First Aid, Evacuation Support, Communication",
+                volunteerPhone = "+91 98201 12345"
+            ),
+            FlatEntity(
+                flatId = "B1-402",
+                tower = "Baraz-1",
+                floor = 4,
+                flatNumber = "402",
+                ownerName = "Amit Joshi",
+                ownerPhone = "+91 98205 11223",
+                ownerEmail = "amit.joshi@example.com",
+                possessionDate = "01-Jan-2023",
+                occupancyStatus = "Rented",
+                flatType = "2 BHK Royal",
+                areaSqFt = 1150
+            ),
             FlatEntity("K-1204", "Kaveh", 12, "1204", "Rajesh Sharma", "+91 98201 12345", "rajesh.sharma@example.com", "15-Dec-2022", "Self Occupied"),
             FlatEntity("B1-802", "Baraz-1", 8, "802", "Vikram Malhotra", "+91 98202 23456", "vikram.m@example.com", "10-Jan-2023", "Rented"),
             FlatEntity("B2-1503", "Baraz-2", 15, "1503", "Sunita Deshmukh", "+91 98203 34567", "sunita.d@example.com", "20-Mar-2023", "Self Occupied"),
@@ -838,19 +1009,85 @@ class ArihantRepository(private val appDao: AppDao) {
         )
         flats.forEach { appDao.insertFlat(it) }
 
-        // Seed Family Members for K-1204
+        // Seed Family Members for K-302 and K-1204
         val members = listOf(
             FamilyMemberEntity(
-                flatId = "K-1204",
+                flatId = "K-302",
                 fullName = "Priya Sharma",
-                relationship = "Wife",
+                relationship = "Spouse",
+                memberType = "Spouse",
                 gender = "Female",
                 dob = "14-May-1988",
                 calculatedAge = 38,
                 phone = "+91 98201 99887",
                 email = "priya.sharma@example.com",
+                photoUri = "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150",
+                isChild = false,
+                isChildBelow16 = false,
+                hasAppAccess = true,
+                inviteStatus = "Active",
+                isEmergencyContact = true,
+                isResident = true
+            ),
+            FamilyMemberEntity(
+                flatId = "K-302",
+                fullName = "Aarav Sharma",
+                relationship = "Son",
+                memberType = "Son",
+                gender = "Male",
+                dob = "20-Aug-2014",
+                calculatedAge = 12,
+                phone = "",
+                photoUri = "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=150",
+                isChild = true,
+                isChildBelow16 = true,
+                parentGuardianName = "Rahul Sharma",
+                parentGuardianPhone = "+91 98201 12345",
+                schoolName = "Delhi Public School, Kharghar",
+                schoolAddress = "Sector 8, Kharghar, Navi Mumbai",
+                grade = "Grade 7-B",
+                schoolContact = "022-27745500",
+                notes = "Asthma inhaler kept in school backpack",
+                hasAppAccess = false,
+                inviteStatus = "Not Invited",
+                isResident = true
+            ),
+            FamilyMemberEntity(
+                flatId = "K-302",
+                fullName = "Ananya Sharma",
+                relationship = "Daughter",
+                memberType = "Daughter",
+                gender = "Female",
+                dob = "12-Nov-2018",
+                calculatedAge = 8,
+                phone = "",
+                photoUri = "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150",
+                isChild = true,
+                isChildBelow16 = true,
+                parentGuardianName = "Rahul Sharma",
+                parentGuardianPhone = "+91 98201 12345",
+                schoolName = "Delhi Public School, Kharghar",
+                schoolAddress = "Sector 8, Kharghar, Navi Mumbai",
+                grade = "Grade 3-A",
+                schoolContact = "022-27745500",
+                hasAppAccess = false,
+                inviteStatus = "Not Invited",
+                isResident = true
+            ),
+            FamilyMemberEntity(
+                flatId = "K-1204",
+                fullName = "Priya Sharma",
+                relationship = "Wife",
+                memberType = "Spouse",
+                gender = "Female",
+                dob = "14-May-1988",
+                calculatedAge = 38,
+                phone = "+91 98201 99887",
+                email = "priya.sharma@example.com",
+                photoUri = "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150",
                 isEmergencyContact = true,
                 isResident = true,
+                hasAppAccess = true,
                 isChild = false
             ),
             FamilyMemberEntity(
@@ -1002,33 +1239,240 @@ class ArihantRepository(private val appDao: AppDao) {
             )
         ).forEach { appDao.insertDomesticHelp(it) }
 
-        // Seed Existing Tenant for B1-802
-        appDao.insertTenant(
+        // Seed Tenants (including exactly 5 expired tenant agreements for dashboard alert)
+        val tenantsList = listOf(
+            TenantEntity(
+                flatId = "B1-402",
+                fullName = "Suresh Mehta",
+                phone = "+91 98331 44556",
+                email = "suresh.mehta@example.com",
+                photoUri = "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150",
+                dobOrAge = "42 Years",
+                permanentAddress = "Flat 12, Shree Ram Niwas, Pune",
+                occupation = "General Manager",
+                employer = "L&T Infotech, Seawoods",
+                familyMemberCount = 3,
+                moveInDate = "15-Sep-2025",
+                expectedMoveOutDate = "14-Sep-2026",
+                status = "Expired",
+                agreementDocument = "Rent_Agreement_B1_402_Expired.pdf",
+                agreementStartDate = "15-Sep-2025",
+                agreementExpiryDate = "14-Sep-2026",
+                agreementStatus = "Expired",
+                daysRemaining = -1,
+                policeVerificationDocument = "Police_NOC_B1_402_Verified.pdf",
+                policeVerificationStatus = "Verified",
+                verificationStatus = "Verified",
+                isComplete = true,
+                tenantVehicleType = "Car",
+                tenantVehicleNumber = "MH-46-AZ-4402",
+                tenantVehicleModel = "Maruti Suzuki Baleno",
+                tenantParkingSlot = "P2-014"
+            ),
+            TenantEntity(
+                flatId = "B2-1102",
+                fullName = "Nitin Desai",
+                phone = "+91 98212 33445",
+                email = "nitin.desai@example.com",
+                photoUri = "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150",
+                dobOrAge = "35 Years",
+                permanentAddress = "Shivaji Nagar, Nashik",
+                occupation = "Marketing Lead",
+                employer = "Cipla Healthcare",
+                familyMemberCount = 2,
+                moveInDate = "11-Sep-2025",
+                expectedMoveOutDate = "10-Sep-2026",
+                status = "Expired",
+                agreementDocument = "Leave_License_B2_1102.pdf",
+                agreementStartDate = "11-Sep-2025",
+                agreementExpiryDate = "10-Sep-2026",
+                agreementStatus = "Expired",
+                daysRemaining = -4,
+                policeVerificationDocument = "Police_Verification_B2_1102.pdf",
+                policeVerificationStatus = "Verified",
+                verificationStatus = "Verified",
+                isComplete = true,
+                tenantVehicleType = "Bike",
+                tenantVehicleNumber = "MH-46-BN-1102",
+                tenantParkingSlot = "P3-008"
+            ),
+            TenantEntity(
+                flatId = "Z-904",
+                fullName = "Alok Pandey",
+                phone = "+91 98111 88776",
+                email = "alok.pandey@example.com",
+                photoUri = "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150",
+                dobOrAge = "39 Years",
+                permanentAddress = "Gomti Nagar, Lucknow",
+                occupation = "Business Analyst",
+                familyMemberCount = 4,
+                moveInDate = "06-Sep-2025",
+                expectedMoveOutDate = "05-Sep-2026",
+                status = "Expired",
+                agreementDocument = "Rent_Agmt_Z904.pdf",
+                agreementStartDate = "06-Sep-2025",
+                agreementExpiryDate = "05-Sep-2026",
+                agreementStatus = "Expired",
+                daysRemaining = -9,
+                policeVerificationDocument = "Police_Verification_Z904.pdf",
+                policeVerificationStatus = "Verified",
+                verificationStatus = "Verified",
+                isComplete = true,
+                tenantVehicleType = "Car",
+                tenantVehicleNumber = "MH-46-CP-9041",
+                tenantParkingSlot = "P4-022"
+            ),
+            TenantEntity(
+                flatId = "K-601",
+                fullName = "Farhan Qureshi",
+                phone = "+91 98333 11224",
+                email = "farhan.q@example.com",
+                photoUri = "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=150",
+                dobOrAge = "31 Years",
+                permanentAddress = "Bandra West, Mumbai",
+                occupation = "Photographer",
+                familyMemberCount = 1,
+                moveInDate = "02-Sep-2025",
+                expectedMoveOutDate = "01-Sep-2026",
+                status = "Expired",
+                agreementDocument = "Rent_Agmt_K601.pdf",
+                agreementStartDate = "02-Sep-2025",
+                agreementExpiryDate = "01-Sep-2026",
+                agreementStatus = "Expired",
+                daysRemaining = -13,
+                policeVerificationDocument = "Police_Doc_K601.pdf",
+                policeVerificationStatus = "Verified",
+                verificationStatus = "Verified",
+                isComplete = true
+            ),
+            TenantEntity(
+                flatId = "B1-1205",
+                fullName = "Deepa Nair",
+                phone = "+91 98444 66778",
+                email = "deepa.nair@example.com",
+                photoUri = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150",
+                dobOrAge = "29 Years",
+                permanentAddress = "Kochi, Kerala",
+                occupation = "UX Designer",
+                familyMemberCount = 2,
+                moveInDate = "13-Sep-2025",
+                expectedMoveOutDate = "12-Sep-2026",
+                status = "Expired",
+                agreementDocument = "Rent_Agmt_B1_1205.pdf",
+                agreementStartDate = "13-Sep-2025",
+                agreementExpiryDate = "12-Sep-2026",
+                agreementStatus = "Expired",
+                daysRemaining = -2,
+                policeVerificationDocument = "Police_Doc_B1_1205.pdf",
+                policeVerificationStatus = "Verified",
+                verificationStatus = "Verified",
+                isComplete = true
+            ),
             TenantEntity(
                 flatId = "B1-802",
                 fullName = "Rohan Mehta",
                 phone = "+91 98190 66772",
                 altPhone = "+91 98190 66773",
                 email = "rohan.mehta@example.com",
+                photoUri = "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150",
+                dobOrAge = "34 Years",
                 permanentAddress = "Flat 302, Green Glen, Vashi, Navi Mumbai",
                 occupation = "Senior Software Architect",
                 employer = "Tata Consultancy Services, Airoli",
+                familyMemberCount = 3,
                 moveInDate = "01-Apr-2025",
                 expectedMoveOutDate = "31-Mar-2027",
                 status = "Active",
                 agreementDocument = "Leave_and_License_Agreement_B1_802_2025_2027.pdf",
                 agreementStartDate = "01-Apr-2025",
                 agreementExpiryDate = "31-Mar-2027",
-                agreementStatus = "Active",
+                agreementStatus = "Valid",
+                daysRemaining = 198,
+                policeVerificationDocument = "Police_Verification_B1_802.pdf",
+                policeVerificationStatus = "Verified",
                 verificationStatus = "Verified",
-                verificationComments = "All NMMC police verification and stamp-duty registration verified."
+                isComplete = true,
+                tenantVehicleType = "Car",
+                tenantVehicleNumber = "MH-46-CM-8802",
+                tenantParkingSlot = "P1-010"
+            )
+        )
+        tenantsList.forEach { appDao.insertTenant(it) }
+
+        // Seed Rent Agreement Expiry Notification (Compulsory requirement)
+        appDao.insertRentAgreementNotification(
+            RentAgreementNotificationEntity(
+                flatId = "B1-402",
+                tenantName = "Suresh Mehta",
+                ownerName = "Amit Joshi",
+                expiryDate = "14 September 2026",
+                daysExpiredOrRemaining = 1,
+                notificationMessage = "Rent Agreement for Flat B1-402 expired on 14 September 2026. Please upload a renewed agreement.",
+                isExpired = true,
+                isRead = false
+            )
+        )
+
+        // Seed Invitations
+        appDao.insertInvitation(
+            InvitationEntity(
+                inviteCode = "INV-9821",
+                token = "ALISHAN-SEC-INV9821-K302",
+                targetFlat = "K-302",
+                targetTower = "Kaveh",
+                assignedRole = "Family Member",
+                recipientName = "Priya Sharma",
+                recipientPhone = "+91 98201 99887",
+                inviteLink = "https://arihant-alishan.society.in/invite?code=INV-9821&token=ALISHAN-SEC-INV9821-K302&flat=K-302",
+                createdAtEpoch = System.currentTimeMillis() - (12 * 3600 * 1000L),
+                expiresAtEpoch = System.currentTimeMillis() + (36 * 3600 * 1000L),
+                isSingleUse = true,
+                isUsed = false,
+                createdBy = "Rahul Sharma",
+                status = "ACTIVE"
+            )
+        )
+
+        // Seed Profile Correction Request
+        appDao.insertProfileCorrection(
+            OwnerProfileCorrectionRequestEntity(
+                flatId = "K-302",
+                ownerName = "Rahul Sharma",
+                requestedBy = "Rahul Sharma",
+                requestedAt = "12 Sep 2026, 02:30 PM",
+                fieldToChange = "Co-Owner",
+                currentValue = "None Listed",
+                proposedValue = "Priya Sharma",
+                reason = "Joint ownership registered in registered deed.",
+                status = "Pending"
             )
         )
 
         // Seed Realistic Complaints
         val complaints = listOf(
             ComplaintEntity(
+                id = "CMP-2026-0125",
+                ticketIdFormatted = "CMP-2026-0125",
+                category = "Plumbing",
+                subcategory = "Sink Drain Blockage",
+                tower = "Kaveh",
+                floor = 3,
+                location = "Kitchen Sink, Flat K-302",
+                description = "Slow water drain and slight leakage under the kitchen counter sink pipe.",
+                priority = "Medium",
+                status = "In Progress",
+                submittedBy = "K-302",
+                raisedByMemberName = "Priya Sharma",
+                raisedByMemberType = "Family Member",
+                visibility = "All Authorised Members of This Flat",
+                assignedTo = "Society Plumber AMC",
+                expectedResolution = "Today, 4:00 PM",
+                createdAt = "13 Sep 2026, 03:30 PM",
+                slaHours = 24
+            ),
+            ComplaintEntity(
                 id = "AA-1024",
+                ticketIdFormatted = "CMP-2026-0098",
                 category = "Lift",
                 subcategory = "Door Problem & Jerk",
                 tower = "Kaveh",
@@ -1038,6 +1482,9 @@ class ArihantRepository(private val appDao: AppDao) {
                 priority = "High",
                 status = "In Progress",
                 submittedBy = "K-1204",
+                raisedByMemberName = "Rajesh Sharma",
+                raisedByMemberType = "Flat Owner",
+                visibility = "All Authorised Members of This Flat",
                 assignedTo = "OTIS Lift Engineering AMC",
                 expectedResolution = "Today, 5:00 PM",
                 createdAt = "12 Sep 2026, 09:30 AM",
@@ -1927,5 +2374,441 @@ class ArihantRepository(private val appDao: AppDao) {
             )
         )
         staffPunchList.forEach { appDao.insertStaffAttendance(it) }
+
+        // Seed Society Community Chat Messages
+        val seedChatMessages = listOf(
+            SocietyChatMessageEntity(
+                senderName = "Capt. Shailesh B. Kulkarni",
+                senderFlatId = "K-2401",
+                senderRole = "Chairman",
+                message = "Welcome to Arihant Alishan resident community chat! Please use this space for respectful discussions, neighbor coordination, and local recommendations.",
+                timestamp = "Yesterday, 10:15 AM",
+                channel = "General Society",
+                epochMillis = now - (24 * 3600 * 1000L),
+                isAnnouncement = true
+            ),
+            SocietyChatMessageEntity(
+                senderName = "Anand Deshpande",
+                senderFlatId = "B1-1802",
+                senderRole = "Secretary",
+                message = "Reminder to all residents: The annual overhead water tank cleaning and chlorination is scheduled this Thursday between 10 AM and 2 PM.",
+                timestamp = "Yesterday, 11:30 AM",
+                channel = "General Society",
+                epochMillis = now - (22 * 3600 * 1000L),
+                isAnnouncement = true
+            ),
+            SocietyChatMessageEntity(
+                senderName = "Rahul Sharma",
+                senderFlatId = "K-302",
+                senderRole = "Resident Owner",
+                message = "Good morning neighbors! Tower Kaveh lift #1 annual AMC checkup was completed today and is running smoothly.",
+                timestamp = "Yesterday, 04:45 PM",
+                channel = "Tower Kaveh",
+                epochMillis = now - (16 * 3600 * 1000L)
+            ),
+            SocietyChatMessageEntity(
+                senderName = "Dr. Meenakshi Sundaram",
+                senderFlatId = "B2-1102",
+                senderRole = "Resident Owner",
+                message = "Good evening everyone! Does anyone have a reliable contact for inverter AC deep cleaning and gas top-up?",
+                timestamp = "Today, 08:30 AM",
+                channel = "Buy & Sell / Help",
+                epochMillis = now - (4 * 3600 * 1000L)
+            ),
+            SocietyChatMessageEntity(
+                senderName = "Suresh Mehta",
+                senderFlatId = "B1-402",
+                senderRole = "Resident",
+                message = "Hello Dr. Meenakshi! UrbanCompany technician Santosh (98221-44552) did my flat's AC servicing last Saturday. Very professional and neat work.",
+                timestamp = "Today, 08:42 AM",
+                channel = "Buy & Sell / Help",
+                epochMillis = now - (3 * 3600 * 1000L)
+            ),
+            SocietyChatMessageEntity(
+                senderName = "Sunil Patil",
+                senderFlatId = "B2-901",
+                senderRole = "Committee Member",
+                message = "Registration for our society Monsoon Badminton Tournament is now open at the Clubhouse reception! All age groups welcome.",
+                timestamp = "Today, 09:15 AM",
+                channel = "Events & Sports",
+                epochMillis = now - (2 * 3600 * 1000L)
+            )
+        )
+        seedChatMessages.forEach { appDao.insertChatMessage(it) }
+
+        // Seed Master Units (Super Admin -> Master -> Users Hierarchy)
+        val seedMasters = listOf(
+            MasterUnitEntity(
+                masterId = "MST-K302",
+                masterName = "Flat K-302 Master Unit (Rahul Sharma)",
+                masterType = "Residential Unit",
+                headOfMaster = "Rahul Sharma",
+                contactPhone = "+91 98201 12345",
+                contactEmail = "rahul.sharma@example.com",
+                assignedUnit = "K-302",
+                status = "Active",
+                maxUsersAllowed = 8,
+                notes = "Primary Residential Unit - 3 BHK Royal",
+                createdDate = "15-Dec-2022"
+            ),
+            MasterUnitEntity(
+                masterId = "MST-K1204",
+                masterName = "Flat K-1204 Master Unit (Rajesh Sharma)",
+                masterType = "Residential Unit",
+                headOfMaster = "Rajesh Sharma",
+                contactPhone = "+91 98201 12345",
+                contactEmail = "rajesh.sharma@example.com",
+                assignedUnit = "K-1204",
+                status = "Active",
+                maxUsersAllowed = 6,
+                notes = "Residential Flat Owner Unit",
+                createdDate = "15-Dec-2022"
+            ),
+            MasterUnitEntity(
+                masterId = "MST-B101",
+                masterName = "Executive Governance Master (Capt. Kulkarni)",
+                masterType = "Society Committee",
+                headOfMaster = "Capt. Shailesh B. Kulkarni",
+                contactPhone = "+91 98200 11001",
+                contactEmail = "chairman@arihant-alishan.org",
+                assignedUnit = "K-2401",
+                status = "Active",
+                maxUsersAllowed = 15,
+                notes = "Society Executive Committee Wing",
+                createdDate = "01-Jan-2022"
+            ),
+            MasterUnitEntity(
+                masterId = "MST-SEC",
+                masterName = "Security & Surveillance Operations Master",
+                masterType = "Security Wing",
+                headOfMaster = "Insp. Vikram Singh",
+                contactPhone = "+91 98201 55662",
+                contactEmail = "security@arihant-alishan.org",
+                assignedUnit = "Main Gate 1 & 2",
+                status = "Active",
+                maxUsersAllowed = 20,
+                notes = "24x7 Society Security & Guard Force",
+                createdDate = "01-Jan-2022"
+            ),
+            MasterUnitEntity(
+                masterId = "MST-FAC",
+                masterName = "Estate & Facilities Operations Master",
+                masterType = "Facility Maintenance",
+                headOfMaster = "Dilip Joshi",
+                contactPhone = "+91 98201 88990",
+                contactEmail = "manager@arihant-alishan.org",
+                assignedUnit = "Admin Office B1",
+                status = "Active",
+                maxUsersAllowed = 12,
+                notes = "Technical and Housekeeping Facilities",
+                createdDate = "01-Jan-2022"
+            )
+        )
+        seedMasters.forEach { appDao.insertMasterUnit(it) }
+
+        // Seed System Users linked to Masters
+        val seedSystemUsers = listOf(
+            SystemUserEntity(
+                userId = "USR-101",
+                fullName = "Rahul Sharma",
+                email = "rahul.sharma@example.com",
+                phone = "+91 98201 12345",
+                roleName = "Flat Owner",
+                linkedMasterId = "MST-K302",
+                linkedMasterName = "Flat K-302 Master Unit (Rahul Sharma)",
+                status = "Active",
+                permissionsSummary = "Full Household Control, Domestic Staff & Vehicle Pass, Amenities, Chat",
+                flatId = "K-302"
+            ),
+            SystemUserEntity(
+                userId = "USR-102",
+                fullName = "Priya Sharma",
+                email = "priya.sharma@example.com",
+                phone = "+91 98201 99887",
+                roleName = "Family Member",
+                linkedMasterId = "MST-K302",
+                linkedMasterName = "Flat K-302 Master Unit (Rahul Sharma)",
+                status = "Active",
+                permissionsSummary = "Household Access, Raise Complaints, Visitor Passes, Amenities",
+                flatId = "K-302"
+            ),
+            SystemUserEntity(
+                userId = "USR-103",
+                fullName = "Aarav Sharma",
+                email = "",
+                phone = "",
+                roleName = "Family Member",
+                linkedMasterId = "MST-K302",
+                linkedMasterName = "Flat K-302 Master Unit (Rahul Sharma)",
+                status = "Active",
+                permissionsSummary = "Clubhouse & Sports Access (Child Profile)",
+                flatId = "K-302"
+            ),
+            SystemUserEntity(
+                userId = "USR-104",
+                fullName = "Sunita Devi",
+                email = "",
+                phone = "+91 98205 77889",
+                roleName = "Domestic Help",
+                linkedMasterId = "MST-K302",
+                linkedMasterName = "Flat K-302 Master Unit (Rahul Sharma)",
+                status = "Active",
+                permissionsSummary = "RFID Gate Badge Entry",
+                flatId = "K-302"
+            ),
+            SystemUserEntity(
+                userId = "USR-201",
+                fullName = "Rajesh Sharma",
+                email = "rajesh.sharma@example.com",
+                phone = "+91 98201 12345",
+                roleName = "Flat Owner",
+                linkedMasterId = "MST-K1204",
+                linkedMasterName = "Flat K-1204 Master Unit (Rajesh Sharma)",
+                status = "Active",
+                permissionsSummary = "Full Household Control & Lease Approvals",
+                flatId = "K-1204"
+            ),
+            SystemUserEntity(
+                userId = "USR-202",
+                fullName = "Rohan Mehta",
+                email = "rohan.mehta@example.com",
+                phone = "+91 98190 66772",
+                roleName = "Resident (Tenant)",
+                linkedMasterId = "MST-K1204",
+                linkedMasterName = "Flat K-1204 Master Unit (Rajesh Sharma)",
+                status = "Active",
+                permissionsSummary = "Tenant Access, Raise Complaints, Visitor Pass, Amenities",
+                flatId = "K-1204"
+            ),
+            SystemUserEntity(
+                userId = "USR-301",
+                fullName = "Capt. Shailesh B. Kulkarni",
+                email = "chairman@arihant-alishan.org",
+                phone = "+91 98200 11001",
+                roleName = "Chairman",
+                linkedMasterId = "MST-B101",
+                linkedMasterName = "Executive Governance Master (Capt. Kulkarni)",
+                status = "Active",
+                permissionsSummary = "Executive Committee Approvals, AGM Notices, Financial Audit",
+                flatId = "K-2401"
+            ),
+            SystemUserEntity(
+                userId = "USR-401",
+                fullName = "Insp. Vikram Singh",
+                email = "security@arihant-alishan.org",
+                phone = "+91 98201 55662",
+                roleName = "Security Incharge",
+                linkedMasterId = "MST-SEC",
+                linkedMasterName = "Security & Surveillance Operations Master",
+                status = "Active",
+                permissionsSummary = "Gate Control, Guard Patrols, Incident Logging, Emergency Response",
+                flatId = "Gate 1"
+            ),
+            SystemUserEntity(
+                userId = "USR-402",
+                fullName = "Surendra Singh",
+                email = "",
+                phone = "+91 98201 55662",
+                roleName = "Security Guard",
+                linkedMasterId = "MST-SEC",
+                linkedMasterName = "Security & Surveillance Operations Master",
+                status = "Active",
+                permissionsSummary = "Patrol QR Scanning, Visitor Check-in",
+                flatId = "Gate 2"
+            ),
+            SystemUserEntity(
+                userId = "USR-501",
+                fullName = "Dilip Joshi",
+                email = "manager@arihant-alishan.org",
+                phone = "+91 98201 88990",
+                roleName = "Society Manager",
+                linkedMasterId = "MST-FAC",
+                linkedMasterName = "Estate & Facilities Operations Master",
+                status = "Active",
+                permissionsSummary = "Operational Master Controls, Vendor Management, Task Assignment",
+                flatId = "Office"
+            )
+        )
+        seedSystemUsers.forEach { appDao.insertSystemUser(it) }
+    }
+
+
+    // Invitations
+    suspend fun createInvitation(
+        targetFlat: String,
+        targetTower: String,
+        assignedRole: String,
+        recipientName: String,
+        recipientPhone: String,
+        createdBy: String,
+        validityHours: Int = 48
+    ): InvitationEntity {
+        val randomNum = (1000..9999).random()
+        val code = "INV-$randomNum"
+        val token = "ALISHAN-SEC-$code-${UUID.randomUUID().toString().take(8).uppercase()}"
+        val now = System.currentTimeMillis()
+        val expiry = now + (validityHours * 3600 * 1000L)
+        val link = "https://arihant-alishan.society.in/invite?code=$code&token=$token&flat=$targetFlat"
+        val invite = InvitationEntity(
+            inviteCode = code,
+            token = token,
+            targetFlat = targetFlat,
+            targetTower = targetTower,
+            assignedRole = assignedRole,
+            recipientName = recipientName,
+            recipientPhone = recipientPhone,
+            inviteLink = link,
+            createdAtEpoch = now,
+            expiresAtEpoch = expiry,
+            isSingleUse = true,
+            isUsed = false,
+            createdBy = createdBy,
+            status = "ACTIVE"
+        )
+        appDao.insertInvitation(invite)
+        logAudit(
+            user = createdBy,
+            role = "Management",
+            action = "GENERATE_SECURE_INVITATION",
+            module = "Access Control",
+            record = code,
+            details = "Generated expiring ($validityHours hrs) single-use link for $recipientName ($assignedRole) at Flat $targetFlat"
+        )
+        return invite
+    }
+
+    suspend fun revokeInvitation(inviteCode: String, currentUser: String, userRole: String) {
+        appDao.deleteInvitation(inviteCode)
+        logAudit(
+            user = currentUser,
+            role = userRole,
+            action = "REVOKE_INVITATION",
+            module = "Access Control",
+            record = inviteCode,
+            details = "Revoked secure invitation $inviteCode"
+        )
+    }
+
+    // Profile Correction Requests (Controlled workflow for Flat Owner personal data)
+    suspend fun submitProfileCorrectionRequest(
+        flatId: String,
+        ownerName: String,
+        requestedBy: String,
+        fieldToChange: String,
+        currentVal: String,
+        proposedVal: String,
+        reason: String
+    ) {
+        val sdf = SimpleDateFormat("dd MMM yyyy, hh:mm a", Locale.getDefault())
+        val req = OwnerProfileCorrectionRequestEntity(
+            flatId = flatId,
+            ownerName = ownerName,
+            requestedBy = requestedBy,
+            requestedAt = sdf.format(Date()),
+            fieldToChange = fieldToChange,
+            currentValue = currentVal,
+            proposedValue = proposedVal,
+            reason = reason,
+            status = "Pending"
+        )
+        appDao.insertProfileCorrection(req)
+        logAudit(
+            user = requestedBy,
+            role = "Flat Owner",
+            action = "REQUEST_PROFILE_CORRECTION",
+            module = "Owner Profile",
+            record = flatId,
+            details = "Requested correction for $fieldToChange: '$currentVal' -> '$proposedVal' (Reason: $reason)"
+        )
+    }
+
+    suspend fun reviewProfileCorrectionRequest(
+        id: Long,
+        isApproved: Boolean,
+        reviewedBy: String,
+        reviewNotes: String
+    ) {
+        val corrections = appDao.getAllProfileCorrections().firstOrNull() ?: return
+        val item = corrections.find { it.id == id } ?: return
+        val sdf = SimpleDateFormat("dd MMM yyyy, hh:mm a", Locale.getDefault())
+        val status = if (isApproved) "Approved" else "Rejected"
+        val updated = item.copy(
+            status = status,
+            reviewedBy = reviewedBy,
+            reviewedAt = sdf.format(Date()),
+            reviewNotes = reviewNotes
+        )
+        appDao.updateProfileCorrection(updated)
+
+        if (isApproved) {
+            val flat = appDao.getFlatById(item.flatId).firstOrNull()
+            if (flat != null) {
+                val amendedFlat = when (item.fieldToChange) {
+                    "Full Name" -> flat.copy(ownerName = item.proposedValue)
+                    "Mobile Number" -> flat.copy(ownerPhone = item.proposedValue)
+                    "Email" -> flat.copy(ownerEmail = item.proposedValue)
+                    "Co-Owner" -> flat.copy(coOwnerName = item.proposedValue)
+                    else -> flat
+                }
+                appDao.insertFlat(amendedFlat)
+            }
+        }
+
+        logAudit(
+            user = reviewedBy,
+            role = "Super Admin",
+            action = "REVIEW_PROFILE_CORRECTION",
+            module = "Owner Profile",
+            record = item.flatId,
+            details = "$status correction request #$id for Flat ${item.flatId} ($reviewNotes)"
+        )
+    }
+
+    suspend fun markRentNotificationRead(id: Long) = appDao.markRentNotificationRead(id)
+
+    suspend fun registerTenant(tenant: TenantEntity, currentUser: String, userRole: String) {
+        appDao.insertTenant(tenant)
+        logAudit(
+            user = currentUser,
+            role = userRole,
+            action = "REGISTER_TENANT",
+            module = "Tenants",
+            record = tenant.fullName,
+            details = "Registered tenant ${tenant.fullName} for Flat ${tenant.flatId}. Agreement: ${tenant.agreementStatus} (Doc: ${tenant.agreementDocument}). Police Verification: ${tenant.policeVerificationStatus}. Vehicle: ${tenant.tenantVehicleNumber}"
+        )
+    }
+
+    suspend fun updateFlatProfessionalAndVolunteer(
+        flatId: String,
+        occupation: String,
+        industry: String,
+        company: String,
+        skills: String,
+        howHelp: String,
+        volunteer: String,
+        volunteerAreas: String,
+        currentUser: String,
+        userRole: String
+    ) {
+        val flat = appDao.getFlatById(flatId).firstOrNull() ?: return
+        val updated = flat.copy(
+            occupation = occupation,
+            industry = industry,
+            companyOrBusinessName = company,
+            skills = skills,
+            howCanHelpSociety = howHelp,
+            emergencyVolunteer = volunteer,
+            volunteerAreas = volunteerAreas,
+            volunteerPhone = if (volunteer != "No") flat.ownerPhone else ""
+        )
+        appDao.insertFlat(updated)
+        logAudit(
+            user = currentUser,
+            role = userRole,
+            action = "UPDATE_PROFESSIONAL_AND_VOLUNTEER",
+            module = "Resident Profile",
+            record = flatId,
+            details = "Updated professional details & emergency volunteer preference ($volunteer) for Flat $flatId"
+        )
     }
 }

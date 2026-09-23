@@ -15,44 +15,44 @@ enum class AppTheme(
     val previewPrimary: Color,
     val previewAccent: Color
 ) {
+    ARIHANT_CLASSIC(
+        id = "ARIHANT_CLASSIC",
+        displayName = "Arihant Classic",
+        subtitle = "Signature residential deep navy with rich gold accents",
+        previewPrimary = Color(0xFF0F2850),
+        previewAccent = Color(0xFFD4AF37)
+    ),
+    MODERN_BLUE(
+        id = "MODERN_BLUE",
+        displayName = "Modern Blue",
+        subtitle = "Crisp, contemporary cobalt blue with sky azure highlights",
+        previewPrimary = Color(0xFF1E40AF),
+        previewAccent = Color(0xFF38BDF8)
+    ),
+    GREEN_COMMUNITY(
+        id = "GREEN_COMMUNITY",
+        displayName = "Green Community",
+        subtitle = "Eco-friendly botanical forest green with crisp mint",
+        previewPrimary = Color(0xFF065F46),
+        previewAccent = Color(0xFF10B981)
+    ),
+    PROFESSIONAL_INDIGO(
+        id = "PROFESSIONAL_INDIGO",
+        displayName = "Professional Indigo",
+        subtitle = "Executive deep indigo with luminous violet tones",
+        previewPrimary = Color(0xFF4338CA),
+        previewAccent = Color(0xFF818CF8)
+    ),
     ROYAL_GOLD(
         id = "ROYAL_GOLD",
         displayName = "Royal Sapphire & Gold",
         subtitle = "Signature luxury navy with royal gold accents",
         previewPrimary = Color(0xFF0F172A),
         previewAccent = Color(0xFFD4AF37)
-    ),
-    EMERALD_LUXURY(
-        id = "EMERALD_LUXURY",
-        displayName = "Emerald Grandeur",
-        subtitle = "Imperial deep forest green with vibrant emerald & sage",
-        previewPrimary = Color(0xFF064E3B),
-        previewAccent = Color(0xFF10B981)
-    ),
-    CRIMSON_REGAL(
-        id = "CRIMSON_REGAL",
-        displayName = "Crimson Regal",
-        subtitle = "Palatial deep burgundy with ruby rose & champagne",
-        previewPrimary = Color(0xFF4C0519),
-        previewAccent = Color(0xFFFB7185)
-    ),
-    OCEAN_AZURE(
-        id = "OCEAN_AZURE",
-        displayName = "Ocean Azure",
-        subtitle = "Prestige nautical deep blue with radiant cyan highlights",
-        previewPrimary = Color(0xFF0C4A6E),
-        previewAccent = Color(0xFF38BDF8)
-    ),
-    MIDNIGHT_OBSIDIAN(
-        id = "MIDNIGHT_OBSIDIAN",
-        displayName = "Midnight Obsidian",
-        subtitle = "Modern stealth obsidian graphite with neon violet accents",
-        previewPrimary = Color(0xFF18181B),
-        previewAccent = Color(0xFFA855F7)
     );
 
     companion object {
-        fun fromId(id: String): AppTheme = values().firstOrNull { it.id.equals(id, ignoreCase = true) } ?: ROYAL_GOLD
+        fun fromId(id: String): AppTheme = values().firstOrNull { it.id.equals(id, ignoreCase = true) } ?: ARIHANT_CLASSIC
     }
 }
 
@@ -96,64 +96,56 @@ data class AppThemePalette(
     }
 }
 
-val RoyalGoldPalette = AppThemePalette(
-    primary = Color(0xFF0F172A),
-    secondary = Color(0xFF1E293B),
-    primaryLight = Color(0xFF334155),
+val ArihantClassicPalette = AppThemePalette(
+    primary = Color(0xFF0F2850),
+    secondary = Color(0xFF1E3A6C),
+    primaryLight = Color(0xFF2C5282),
     accent = Color(0xFFD4AF37),
     accentSecondary = Color(0xFFC5A059),
     accentContainer = Color(0xFFFEF3C7),
     onAccentContainer = Color(0xFF78350F)
 )
 
-val EmeraldLuxuryPalette = AppThemePalette(
-    primary = Color(0xFF064E3B),
-    secondary = Color(0xFF065F46),
-    primaryLight = Color(0xFF047857),
-    accent = Color(0xFF10B981),
-    accentSecondary = Color(0xFF34D399),
-    accentContainer = Color(0xFFD1FAE5),
-    onAccentContainer = Color(0xFF064E3B)
-)
-
-val CrimsonRegalPalette = AppThemePalette(
-    primary = Color(0xFF4C0519),
-    secondary = Color(0xFF881337),
-    primaryLight = Color(0xFF9F1239),
-    accent = Color(0xFFFB7185),
-    accentSecondary = Color(0xFFF43F5E),
-    accentContainer = Color(0xFFFFE4E6),
-    onAccentContainer = Color(0xFF881337)
-)
-
-val OceanAzurePalette = AppThemePalette(
-    primary = Color(0xFF0C4A6E),
-    secondary = Color(0xFF0369A1),
-    primaryLight = Color(0xFF0284C7),
+val ModernBluePalette = AppThemePalette(
+    primary = Color(0xFF1E40AF),
+    secondary = Color(0xFF2563EB),
+    primaryLight = Color(0xFF3B82F6),
     accent = Color(0xFF38BDF8),
     accentSecondary = Color(0xFF0EA5E9),
     accentContainer = Color(0xFFE0F2FE),
     onAccentContainer = Color(0xFF0369A1)
 )
 
-val MidnightObsidianPalette = AppThemePalette(
-    primary = Color(0xFF18181B),
-    secondary = Color(0xFF27272A),
-    primaryLight = Color(0xFF3F3F46),
-    accent = Color(0xFFA855F7),
-    accentSecondary = Color(0xFFC084FC),
-    accentContainer = Color(0xFFF3E8FF),
-    onAccentContainer = Color(0xFF581C87)
+val GreenCommunityPalette = AppThemePalette(
+    primary = Color(0xFF065F46),
+    secondary = Color(0xFF047857),
+    primaryLight = Color(0xFF10B981),
+    accent = Color(0xFF10B981),
+    accentSecondary = Color(0xFF34D399),
+    accentContainer = Color(0xFFD1FAE5),
+    onAccentContainer = Color(0xFF064E3B)
 )
+
+val ProfessionalIndigoPalette = AppThemePalette(
+    primary = Color(0xFF4338CA),
+    secondary = Color(0xFF4F46E5),
+    primaryLight = Color(0xFF6366F1),
+    accent = Color(0xFF818CF8),
+    accentSecondary = Color(0xFFA5B4FC),
+    accentContainer = Color(0xFFEEF2FF),
+    onAccentContainer = Color(0xFF3730A3)
+)
+
+val RoyalGoldPalette = ArihantClassicPalette
 
 fun getPaletteForTheme(theme: AppTheme): AppThemePalette {
     return when (theme) {
-        AppTheme.ROYAL_GOLD -> RoyalGoldPalette
-        AppTheme.EMERALD_LUXURY -> EmeraldLuxuryPalette
-        AppTheme.CRIMSON_REGAL -> CrimsonRegalPalette
-        AppTheme.OCEAN_AZURE -> OceanAzurePalette
-        AppTheme.MIDNIGHT_OBSIDIAN -> MidnightObsidianPalette
+        AppTheme.ARIHANT_CLASSIC -> ArihantClassicPalette
+        AppTheme.MODERN_BLUE -> ModernBluePalette
+        AppTheme.GREEN_COMMUNITY -> GreenCommunityPalette
+        AppTheme.PROFESSIONAL_INDIGO -> ProfessionalIndigoPalette
+        AppTheme.ROYAL_GOLD -> ArihantClassicPalette
     }
 }
 
-val LocalAppThemePalette = staticCompositionLocalOf { RoyalGoldPalette }
+val LocalAppThemePalette = staticCompositionLocalOf { ArihantClassicPalette }

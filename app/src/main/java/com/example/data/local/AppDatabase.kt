@@ -33,9 +33,15 @@ import com.example.data.model.*
         SocietyRuleEntity::class,
         StaffAttendanceEntity::class,
         PatrolCheckpointEntity::class,
-        PatrolScanLogEntity::class
+        PatrolScanLogEntity::class,
+        InvitationEntity::class,
+        OwnerProfileCorrectionRequestEntity::class,
+        RentAgreementNotificationEntity::class,
+        SocietyChatMessageEntity::class,
+        MasterUnitEntity::class,
+        SystemUserEntity::class
     ],
-    version = 4,
+    version = 8,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {

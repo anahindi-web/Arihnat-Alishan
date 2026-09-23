@@ -266,23 +266,35 @@ fun MenuRowItem(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(14.dp),
+            .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
             modifier = Modifier
-                .size(40.dp)
-                .clip(RoundedCornerShape(10.dp))
-                .background(color.copy(alpha = 0.12f)),
+                .size(52.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .background(color.copy(alpha = 0.12f))
+                .border(1.dp, color.copy(alpha = 0.22f), RoundedCornerShape(16.dp)),
             contentAlignment = Alignment.Center
         ) {
-            Icon(imageVector = icon, contentDescription = null, tint = color, modifier = Modifier.size(22.dp))
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = color,
+                modifier = Modifier.size(28.dp)
+            )
         }
-        Spacer(modifier = Modifier.width(12.dp))
+        Spacer(modifier = Modifier.width(14.dp))
         Column(modifier = Modifier.weight(1f)) {
-            Text(title, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = TextPrimary)
-            Text(subtitle, fontSize = 11.sp, color = TextSecondary, maxLines = 2)
+            Text(title, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = TextPrimary)
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(subtitle, fontSize = 11.5.sp, color = TextSecondary, maxLines = 2, lineHeight = 16.sp)
         }
-        Icon(Icons.Default.ChevronRight, contentDescription = null, tint = TextMuted, modifier = Modifier.size(20.dp))
+        Icon(
+            imageVector = Icons.Default.ChevronRight,
+            contentDescription = null,
+            tint = TextMuted,
+            modifier = Modifier.size(22.dp)
+        )
     }
 }

@@ -24,6 +24,8 @@ import androidx.compose.ui.unit.sp
 import com.example.data.model.UserRole
 import com.example.data.model.VisitorEntity
 import com.example.ui.ArihantViewModel
+import com.example.ui.components.CandyButton
+import com.example.ui.components.CandyFlavor
 import com.example.ui.components.StatusBadge
 import com.example.ui.theme.*
 
@@ -40,7 +42,7 @@ fun VisitorsScreen(
     var showCreatePassDialog by remember { mutableStateOf(false) }
     var viewingPassModal by remember { mutableStateOf<VisitorEntity?>(null) }
 
-    val isGuardOrAdmin = currentRole == UserRole.SECURITY_GUARD || currentRole == UserRole.SOCIETY_MANAGER || currentRole == UserRole.CHAIRMAN
+    val isGuardOrAdmin = currentRole.isCommitteeMember() || currentRole == UserRole.SECURITY_GUARD || currentRole == UserRole.SECURITY_INCHARGE
 
     val displayList = if (isGuardOrAdmin) allVisitors else myVisitors
 
@@ -108,30 +110,37 @@ fun VisitorsScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-                                    Icon(Icons.Default.Security, contentDescription = null, tint = OnGoldContainer, modifier = Modifier.size(24.dp))
-                                    Spacer(modifier = Modifier.width(10.dp))
+                                    Box(
+                                        modifier = Modifier
+                                            .size(44.dp)
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .background(NavyPrimary.copy(alpha = 0.12f)),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(Icons.Default.Security, contentDescription = null, tint = NavyPrimary, modifier = Modifier.size(26.dp))
+                                    }
+                                    Spacer(modifier = Modifier.width(12.dp))
                                     Column {
                                         Text(
                                             text = "Pre-Approve Visitors",
                                             fontWeight = FontWeight.Bold,
-                                            fontSize = 13.sp,
+                                            fontSize = 14.sp,
                                             color = OnGoldContainer
                                         )
                                         Text(
                                             text = "Guests show digital QR or 6-digit pass at Main Gate 1 for instant zero-contact entry.",
-                                            fontSize = 11.sp,
+                                            fontSize = 11.5.sp,
                                             color = OnGoldContainer.copy(alpha = 0.85f)
                                         )
                                     }
                                 }
-                                Button(
+                                CandyButton(
+                                    text = "+ Pass",
                                     onClick = { showCreatePassDialog = true },
-                                    colors = ButtonDefaults.buttonColors(containerColor = NavyPrimary),
-                                    shape = RoundedCornerShape(8.dp),
-                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
-                                ) {
-                                    Text("+ Pass", fontSize = 12.sp, color = Color.White)
-                                }
+                                    flavor = CandyFlavor.AMBER,
+                                    shape = RoundedCornerShape(18.dp),
+                                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
+                                )
                             }
                         }
                     }
@@ -206,8 +215,8 @@ fun VisitorCard(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
                         modifier = Modifier
-                            .size(38.dp)
-                            .clip(CircleShape)
+                            .size(50.dp)
+                            .clip(RoundedCornerShape(14.dp))
                             .background(
                                 when (visitor.type) {
                                     "Delivery" -> Color(0xFFFEF3C7)
@@ -232,10 +241,10 @@ fun VisitorCard(
                                 "Domestic Help" -> Color(0xFF7C3AED)
                                 else -> NavyPrimary
                             },
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.size(28.dp)
                         )
                     }
-                    Spacer(modifier = Modifier.width(10.dp))
+                    Spacer(modifier = Modifier.width(12.dp))
                     Column {
                         Text(
                             text = visitor.visitorName,
@@ -314,37 +323,30 @@ fun VisitorCard(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Button(
+                    CandyButton(
+                        text = "Check In (Gate 1)",
                         onClick = { onUpdateStatus("Inside") },
-                        colors = ButtonDefaults.buttonColors(containerColor = StatusSuccess),
-                        shape = RoundedCornerShape(8.dp),
+                        flavor = CandyFlavor.EMERALD,
+                        icon = Icons.Default.Login,
                         modifier = Modifier.weight(1f)
-                    ) {
-                        Icon(Icons.Default.Login, contentDescription = null, modifier = Modifier.size(14.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Check In (Gate 1)", fontSize = 11.sp)
-                    }
+                    )
 
-                    OutlinedButton(
+                    CandyButton(
+                        text = "Deny Entry",
                         onClick = { onUpdateStatus("Rejected") },
-                        shape = RoundedCornerShape(8.dp),
+                        flavor = CandyFlavor.RUBY,
                         modifier = Modifier.weight(0.8f)
-                    ) {
-                        Text("Deny Entry", fontSize = 11.sp, color = StatusCritical)
-                    }
+                    )
                 }
             } else if (visitor.status == "Inside") {
                 Spacer(modifier = Modifier.height(10.dp))
-                Button(
+                CandyButton(
+                    text = "Check Out Visitor",
                     onClick = { onUpdateStatus("Checked Out") },
-                    colors = ButtonDefaults.buttonColors(containerColor = NavyPrimary),
-                    shape = RoundedCornerShape(8.dp),
+                    flavor = CandyFlavor.NAVY,
+                    icon = Icons.Default.Logout,
                     modifier = Modifier.fillMaxWidth()
-                ) {
-                    Icon(Icons.Default.Logout, contentDescription = null, modifier = Modifier.size(14.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Check Out Visitor", fontSize = 12.sp)
-                }
+                )
             }
         }
     }
@@ -424,17 +426,16 @@ fun CreateVisitorPassDialog(
             }
         },
         confirmButton = {
-            Button(
+            CandyButton(
+                text = "Generate QR Pass",
                 onClick = {
                     if (name.isNotBlank()) {
                         viewModel.createVisitorPass(name, phone, selectedType, company, expectedTime)
                         onDismiss()
                     }
                 },
-                colors = ButtonDefaults.buttonColors(containerColor = NavyPrimary)
-            ) {
-                Text("Generate QR Pass")
-            }
+                flavor = CandyFlavor.SAPPHIRE
+            )
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
     )
@@ -511,9 +512,11 @@ fun DigitalPassQRDialog(
             }
         },
         confirmButton = {
-            Button(onClick = onDismiss, colors = ButtonDefaults.buttonColors(containerColor = NavyPrimary)) {
-                Text("Done")
-            }
+            CandyButton(
+                text = "Done",
+                onClick = onDismiss,
+                flavor = CandyFlavor.NAVY
+            )
         }
     )
 }

@@ -5,15 +5,18 @@ import androidx.room.PrimaryKey
 
 enum class UserRole(val displayName: String) {
     SUPER_ADMIN("Super Admin"),
-    RESIDENT_OWNER("Resident (Owner)"),
-    RESIDENT_TENANT("Resident (Tenant)"),
-    SOCIETY_MANAGER("Society Manager"),
     CHAIRMAN("Chairman"),
     SECRETARY("Secretary"),
     TREASURER("Treasurer"),
     COMMITTEE_MEMBER("Committee Member"),
+    SOCIETY_MANAGER("Society Manager"),
+    SECURITY_INCHARGE("Security Incharge"),
     SECURITY_GUARD("Security Guard"),
-    MAINTENANCE_STAFF("Maintenance Staff");
+    HOUSEKEEPING_SUPERVISOR("Housekeeping Supervisor"),
+    HOUSEKEEPING_STAFF("Housekeeping Staff"),
+    RESIDENT_OWNER("Flat Owner"),
+    FAMILY_MEMBER("Family Member"),
+    RESIDENT_TENANT("Resident (Tenant)");
 
     fun isCommitteeMember(): Boolean =
         this == SUPER_ADMIN || this == CHAIRMAN || this == SECRETARY || this == TREASURER ||
@@ -52,14 +55,32 @@ enum class UserRole(val displayName: String) {
     fun canViewSocietyFinances(): Boolean =
         this == SUPER_ADMIN || this == CHAIRMAN || this == SECRETARY || this == TREASURER ||
         this == SOCIETY_MANAGER
+
+    // Operational Masters vs Protected Flat Owner Personal Details
+    fun canManageOperationalMasters(): Boolean =
+        this == SUPER_ADMIN || this == CHAIRMAN || this == SECRETARY || this == SOCIETY_MANAGER
+
+    fun canDirectlyEditFlatOwnerPersonalDetails(): Boolean =
+        this == SUPER_ADMIN // Chairman CANNOT directly edit protected Flat Owner personal details!
+
+    fun canViewEmergencyVolunteerDirectory(): Boolean =
+        this == SUPER_ADMIN || this == CHAIRMAN || this == SECRETARY || this == SOCIETY_MANAGER
+
+    fun canManageSecurity(): Boolean =
+        this == SUPER_ADMIN || this == CHAIRMAN || this == SECRETARY || this == SOCIETY_MANAGER ||
+        this == SECURITY_INCHARGE
+
+    fun canManageHousekeeping(): Boolean =
+        this == SUPER_ADMIN || this == CHAIRMAN || this == SECRETARY || this == SOCIETY_MANAGER ||
+        this == HOUSEKEEPING_SUPERVISOR
 }
 
 @Entity(tableName = "flats")
 data class FlatEntity(
-    @PrimaryKey val flatId: String, // e.g. "K-1204"
+    @PrimaryKey val flatId: String, // e.g. "K-302", "K-1204"
     val tower: String, // "Kaveh", "Baraz-1", "Baraz-2", "Zenath"
     val floor: Int,
-    val flatNumber: String, // "1204"
+    val flatNumber: String, // "302", "1204"
     val ownerName: String,
     val ownerPhone: String,
     val ownerEmail: String,
@@ -67,7 +88,20 @@ data class FlatEntity(
     val occupancyStatus: String, // "Self Occupied", "Rented", "Vacant", "Temporarily Occupied"
     val isVerified: Boolean = true,
     val flatType: String = "2 BHK Royal",
-    val areaSqFt: Int = 1150
+    val areaSqFt: Int = 1150,
+    val coOwnerName: String = "",
+    val coOwnerPhone: String = "",
+    // Optional Professional / Business Information
+    val occupation: String = "Salaried", // Salaried, Self-employed, Business Owner, Professional, Retired, Homemaker, Other
+    val jobOrEmployment: String = "",
+    val industry: String = "",
+    val companyOrBusinessName: String = "",
+    val skills: String = "",
+    val howCanHelpSociety: String = "", // e.g. "IT / Technology, First Aid"
+    // Optional Emergency Volunteer Information
+    val emergencyVolunteer: String = "No", // "Yes", "No", "Maybe"
+    val volunteerAreas: String = "", // e.g. "First Aid, Evacuation Support"
+    val volunteerPhone: String = ""
 )
 
 @Entity(tableName = "family_members")
@@ -75,18 +109,28 @@ data class FamilyMemberEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val flatId: String,
     val fullName: String,
-    val relationship: String, // "Wife", "Son", "Daughter", "Mother", "Father"
+    val relationship: String, // "Spouse", "Son", "Daughter", "Parent", "Sibling", "Other Family Member"
+    val memberType: String = "Spouse",
     val gender: String,
     val dob: String,
     val calculatedAge: Int,
     val phone: String = "",
     val email: String = "",
+    val photoUri: String = "", // Compulsory profile photo
+    val isChild: Boolean = false,
+    val isChildBelow16: Boolean = false,
+    val parentGuardianName: String = "",
+    val parentGuardianPhone: String = "",
+    val hasAppAccess: Boolean = false,
+    val inviteStatus: String = "Not Invited", // "Not Invited", "Invited", "Active"
     val isEmergencyContact: Boolean = false,
     val isResident: Boolean = true,
-    val isChild: Boolean = false,
     val schoolName: String = "",
+    val schoolAddress: String = "",
     val grade: String = "",
-    val schoolContact: String = ""
+    val schoolContact: String = "",
+    val notes: String = "",
+    val status: String = "Active" // "Active", "Deactivated"
 )
 
 @Entity(tableName = "tenants")
@@ -97,18 +141,29 @@ data class TenantEntity(
     val phone: String,
     val altPhone: String = "",
     val email: String,
+    val photoUri: String = "", // Compulsory profile photo
+    val dobOrAge: String = "",
     val permanentAddress: String,
     val occupation: String,
     val employer: String = "",
+    val familyMemberCount: Int = 1,
     val moveInDate: String,
     val expectedMoveOutDate: String,
     val status: String, // "Pending Verification", "Active", "Expiring Soon", "Expired", "Vacated"
-    val agreementDocument: String,
+    val agreementDocument: String, // URI or File Path
     val agreementStartDate: String,
     val agreementExpiryDate: String,
-    val agreementStatus: String, // "Active", "Expiring Soon", "Expired"
-    val verificationStatus: String, // "Pending", "Verified", "Correction Required", "Rejected"
-    val verificationComments: String = ""
+    val agreementStatus: String, // "Valid", "Expiring Soon", "Expired", "Document Missing"
+    val daysRemaining: Int = 0,
+    val policeVerificationDocument: String = "",
+    val policeVerificationStatus: String = "Pending", // "Verified", "Submitted", "Pending"
+    val verificationStatus: String = "Pending", // "Pending", "Verified", "Correction Required", "Rejected"
+    val verificationComments: String = "",
+    val isComplete: Boolean = false,
+    val tenantVehicleType: String = "None", // "Car", "Bike", "Scooter", "None"
+    val tenantVehicleNumber: String = "",
+    val tenantVehicleModel: String = "",
+    val tenantParkingSlot: String = ""
 )
 
 @Entity(tableName = "vehicles")
@@ -190,7 +245,11 @@ data class ComplaintEntity(
     val isSlaBreached: Boolean = false,
     val duplicateReportCount: Int = 1,
     val isRecurring: Boolean = false,
-    val reopenedCount: Int = 0
+    val reopenedCount: Int = 0,
+    val ticketIdFormatted: String = "",
+    val raisedByMemberName: String = "",
+    val raisedByMemberType: String = "Flat Owner", // "Flat Owner", "Family Member", "Tenant"
+    val visibility: String = "All Authorised Members of This Flat" // "All Authorised Members of This Flat", "Raised By Only", "Owner and Raised By Only", "Committee Only"
 )
 
 @Entity(tableName = "complaint_comments")
@@ -487,5 +546,81 @@ data class InvitationEntity(
     val createdBy: String,
     val status: String = "ACTIVE" // "ACTIVE", "USED", "EXPIRED", "REVOKED"
 )
+
+@Entity(tableName = "owner_profile_corrections")
+data class OwnerProfileCorrectionRequestEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val flatId: String,
+    val ownerName: String,
+    val requestedBy: String,
+    val requestedAt: String,
+    val fieldToChange: String, // "Full Name", "Mobile Number", "Email", "Co-Owner", "Ownership Document"
+    val currentValue: String,
+    val proposedValue: String,
+    val reason: String,
+    val status: String = "Pending", // "Pending", "Approved", "Rejected"
+    val reviewedBy: String = "",
+    val reviewedAt: String = "",
+    val reviewNotes: String = ""
+)
+
+@Entity(tableName = "rent_agreement_notifications")
+data class RentAgreementNotificationEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val flatId: String,
+    val tenantName: String,
+    val ownerName: String,
+    val expiryDate: String,
+    val daysExpiredOrRemaining: Int,
+    val notificationMessage: String,
+    val isExpired: Boolean = true,
+    val isRead: Boolean = false,
+    val createdAtEpoch: Long = System.currentTimeMillis()
+)
+
+@Entity(tableName = "society_chat_messages")
+data class SocietyChatMessageEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val senderName: String,
+    val senderFlatId: String,
+    val senderRole: String,
+    val message: String,
+    val timestamp: String,
+    val epochMillis: Long = System.currentTimeMillis(),
+    val channel: String = "General Society", // "General Society", "Tower Kaveh", "Buy & Sell / Help", "Events & Sports"
+    val isAnnouncement: Boolean = false
+)
+
+@Entity(tableName = "master_units")
+data class MasterUnitEntity(
+    @PrimaryKey val masterId: String, // e.g. "MST-K302", "MST-K1204", "MST-OPS-01", "MST-SEC-01"
+    val masterName: String,
+    val masterType: String, // "Residential Unit", "Society Committee", "Security Wing", "Facility Maintenance"
+    val headOfMaster: String,
+    val contactPhone: String,
+    val contactEmail: String,
+    val assignedUnit: String = "",
+    val status: String = "Active", // "Active", "Inactive", "Deactivated"
+    val maxUsersAllowed: Int = 10,
+    val notes: String = "",
+    val createdDate: String = "15-Aug-2022"
+)
+
+@Entity(tableName = "system_users")
+data class SystemUserEntity(
+    @PrimaryKey val userId: String,
+    val fullName: String,
+    val email: String,
+    val phone: String,
+    val roleName: String, // e.g. "Flat Owner", "Family Member", "Resident (Tenant)", "Security Guard", "Committee Member"
+    val linkedMasterId: String, // Links directly to a MasterUnitEntity
+    val linkedMasterName: String,
+    val status: String = "Active", // "Active", "Deactivated", "Suspended"
+    val permissionsSummary: String = "Standard Household Access",
+    val photoUri: String = "",
+    val flatId: String = "K-302"
+)
+
+
 
 
