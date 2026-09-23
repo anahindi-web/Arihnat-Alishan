@@ -6,6 +6,9 @@ on:
       - main
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -26,10 +29,15 @@ jobs:
           java -version
           JAVA_MAJOR_VER=$(java -version 2>&1 | awk -F '"' '/version/ {print $2}' | awk -F '.' '{print $1}')
           echo "Detected Java major version: $JAVA_MAJOR_VER"
-          if [ -z "$JAVA_MAJOR_VER" ] || [ "$JAVA_MAJOR_VER" -lt 17 ]; then
+          if [ -z "$JAVA_MAJOR_VER" ]; then
+            echo "Error: Unable to detect Java version."
+            exit 1
+          fi
+          if [ "$JAVA_MAJOR_VER" -lt 17 ]; then
             echo "Error: Active Java version ($JAVA_MAJOR_VER) is lower than 17."
             exit 1
           fi
+          echo "Java 17+ environment verified."
 
       - name: Set up Gradle 9.3.1
         uses: gradle/actions/setup-gradle@v4
@@ -62,14 +70,12 @@ jobs:
       - name: Build debug APK
         run: gradle :app:assembleDebug --stacktrace --no-daemon
 
-      - name: Verify debug APK output
+      - name: Verify the APK
         run: |
           TARGET_APK="app/build/outputs/apk/debug/app-debug.apk"
-          if [ -f "$TARGET_APK" ]; then
-            echo "Found debug APK at $TARGET_APK"
-          else
+          if [ ! -f "$TARGET_APK" ]; then
             echo "Error: $TARGET_APK was not found!"
-            echo "Searching inside app/build/outputs/apk..."
+            echo "Searching only inside app/build/outputs/apk..."
             if [ -d "app/build/outputs/apk" ]; then
               find app/build/outputs/apk -name "*.apk"
             else
@@ -78,9 +84,107 @@ jobs:
             exit 1
           fi
 
+          if [ ! -s "$TARGET_APK" ]; then
+            echo "Error: $TARGET_APK is empty."
+            exit 1
+          fi
+
+          case "$TARGET_APK" in
+            *.apk) echo "Verified $TARGET_APK exists, is non-empty, and has .apk extension." ;;
+            *) echo "Error: $TARGET_APK does not have .apk extension."; exit 1 ;;
+          esac
+
       - name: Upload debug APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: app-debug-apk
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
+
+      - name: Prepare APK release asset
+        id: prepare_asset
+        run: |
+          SRC_APK="app/build/outputs/apk/debug/app-debug.apk"
+          RELEASE_TMP_DIR=$(mktemp -d -t apk-release-XXXXXX)
+          ASSET_FILE="$RELEASE_TMP_DIR/app-debug.apk"
+          cp "$SRC_APK" "$ASSET_FILE"
+          if [ ! -s "$ASSET_FILE" ]; then
+            echo "Error: Prepared asset $ASSET_FILE is missing or empty."
+            exit 1
+          fi
+          echo "asset_path=$ASSET_FILE" >> "$GITHUB_OUTPUT"
+          echo "Prepared release asset: $ASSET_FILE"
+
+      - name: Publish APK to GitHub Releases
+        id: publish_release
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh --version || { echo "Error: GitHub CLI is not available."; exit 1; }
+
+          ASSET_PATH="${{ steps.prepare_asset.outputs.asset_path }}"
+          if [ ! -f "$ASSET_PATH" ] || [ ! -s "$ASSET_PATH" ]; then
+            echo "Error: Prepared release asset is missing or empty."
+            exit 1
+          fi
+
+          ASSET_NAME=$(basename "$ASSET_PATH")
+          if [ "$ASSET_NAME" != "app-debug.apk" ]; then
+            echo "Error: Asset filename must be exactly app-debug.apk, found $ASSET_NAME"
+            exit 1
+          fi
+
+          RELEASE_TAG="debug-apk-build-${{ github.run_number }}-${{ github.run_attempt }}"
+          RELEASE_TITLE="Debug APK Build #${{ github.run_number }}"
+
+          RELEASE_NOTES=$(cat <<EOF
+          This is an automatically generated debug APK.
+          The APK was built by GitHub Actions.
+          - GitHub Actions Run Number: ${{ github.run_number }}
+          - GitHub Actions Run Attempt: ${{ github.run_attempt }}
+          - Source Commit SHA: ${{ github.sha }}
+          - APK Status: Intended for testing only (not a Play Store production release).
+          - Signing: Signed with a temporary debug keystore.
+          EOF
+          )
+
+          echo "Creating GitHub Release with tag $RELEASE_TAG and title '$RELEASE_TITLE'..."
+          gh release create "$RELEASE_TAG" "$ASSET_PATH" \
+            --target "${{ github.sha }}" \
+            --title "$RELEASE_TITLE" \
+            --notes "$RELEASE_NOTES" \
+            --latest
+
+      - name: Report APK download result
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          RELEASE_OUTCOME="${{ steps.publish_release.outcome }}"
+          TARGET_APK="app/build/outputs/apk/debug/app-debug.apk"
+          DIRECT_URL="https://github.com/${GITHUB_REPOSITORY}/releases/latest/download/app-debug.apk"
+
+          if [ "$RELEASE_OUTCOME" = "success" ]; then
+            RELEASE_TAG="debug-apk-build-${{ github.run_number }}-${{ github.run_attempt }}"
+            echo "=== RELEASE SUCCESS ==="
+            echo "Release Tag: $RELEASE_TAG"
+            echo "Release Title: Debug APK Build #${{ github.run_number }}"
+            echo "Release Asset: app-debug.apk"
+            gh release view "$RELEASE_TAG" --json url,tagName,name || true
+
+            echo "### DIRECT APK DOWNLOAD" >> "$GITHUB_STEP_SUMMARY"
+            echo "Direct Download Link: [app-debug.apk]($DIRECT_URL)" >> "$GITHUB_STEP_SUMMARY"
+            echo "Actions backup artifact 'app-debug-apk' remains available." >> "$GITHUB_STEP_SUMMARY"
+            echo "Direct APK URL: $DIRECT_URL"
+            echo "Backup Actions Artifact: app-debug-apk is available."
+          else
+            echo "=== WARNING: RELEASE PUBLISHING FAILED ==="
+            if [ -f "$TARGET_APK" ]; then
+              echo "The debug APK was built successfully."
+              echo "The Actions artifact 'app-debug-apk' remains available for download."
+            else
+              echo "The debug APK build did not produce an output file."
+            fi
+            echo "Note: The direct latest release link is not updated because GitHub Release publishing was not completed."
+          fi
